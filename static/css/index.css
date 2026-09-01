@@ -392,16 +392,15 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--tailrl); outlin
 .pagenav a:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
 .pagenav .links { display: flex; gap: 1.35rem; }
 .pagenav .jump { display: none; }
+/* The bar is hidden outright on a phone rather than collapsed to a picker:
+   it was spending the top of a screen that the masthead already crowds, on a
+   page short enough to scroll. */
 @media (max-width: 768px) {
-  .pagenav .links { display: none; }
-  .pagenav .jump {
-    display: block; font-family: var(--cm); font-size: 1.02rem;
-    padding: 0.3rem 0.5rem; border: 1px solid var(--border-light); border-radius: 6px;
-    background: #fff; color: var(--text-dark);
-  }
+  .pagenav { display: none; }
 }
-/* anchors clear the sticky bar */
+/* anchors clear the sticky bar, which is only there on a wide screen */
 [id] { scroll-margin-top: 68px; }
+@media (max-width: 768px) { [id] { scroll-margin-top: 12px; } }
 
 
 
