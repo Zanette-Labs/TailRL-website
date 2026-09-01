@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TailRL: Tail-Likelihood Reinforcement Learning</title>
+
+  <meta name="description"
+        content="TailRL is a likelihood-based reinforcement-learning objective for continuous rewards that keeps rare, high-reward rollouts influential and scales with sampling compute.">
+  <meta name="keywords" content="Reinforcement Learning, Maximum Likelihood, MaxRL, Policy Gradient, Continuous Rewards, Best-of-k, Test-time Scaling, LLM, VLM">
+  <link rel="canonical" href="https://zanette-labs.github.io/TailRL-website/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://zanette-labs.github.io/TailRL-website/">
+  <meta property="og:title" content="TailRL: Tail-Likelihood Reinforcement Learning">
+  <meta property="og:description"
+        content="RL optimizes the mean. TailRL shapes the tail: a likelihood objective for continuous rewards that keeps rare, high-reward rollouts influential and scales with sampling compute.">
+  <meta property="og:image" content="https://zanette-labs.github.io/TailRL-website/static/images/teaser_decomposition.png">
+  <meta property="og:image:width" content="1549">
+  <meta property="og:image:height" content="445">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TailRL: Tail-Likelihood Reinforcement Learning">
+  <meta name="twitter:description"
+        content="RL optimizes the mean. TailRL shapes the tail. A likelihood objective for continuous rewards that keeps rare, high-reward rollouts influential.">
+  <meta name="twitter:image" content="https://zanette-labs.github.io/TailRL-website/static/images/teaser_decomposition.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/index.css?v=130">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+
+  <script defer src="./static/js/same-mean-tail.js?v=130"></script>
+  <script defer src="./static/js/tailrl-explorer.js?v=130"></script>
+  <script defer src="./static/js/demo-gesture.js?v=130"></script>
+  <script defer src="./static/js/index.js?v=130"></script>
+  <script defer src="./static/js/scroll-jack.js?v=130"></script>
+</head>
+<body>
+
+<!-- ==================== STICKY SECTION NAV ==================== -->
+<nav class="pagenav" aria-label="Section navigation">
+  <div class="inner">
+    <span class="brand">TailRL</span>
+    <span class="links">
+      <a href="#tail">Tail</a>
+      <a href="#tailrl">Objective</a>
+      <a href="#harmonic">Best-of-k</a>
+      <a href="#algorithm">Algorithm</a>
+      <a href="#results">Results</a>
+      <a href="#bibtex">BibTeX</a>
+    </span>
+    <label class="is-sr-only" for="pagenav-jump">Jump to section</label>
+    <select class="jump" id="pagenav-jump">
+      <option value="">Jump to…</option>
+      <option value="#tail">Tail likelihood</option>
+      <option value="#why">Why tail-likelihood</option>
+      <option value="#tailrl">Objective and gradient</option>
+      <option value="#harmonic">Aligned with inference time</option>
+      <option value="#decompose">Decomposition</option>
+      <option value="#compare">Manipulate the distribution</option>
+      <option value="#algorithm">Algorithm</option>
+      <option value="#advantages">Advantages</option>
+      <option value="#results">Results</option>
+      <option value="#bibtex">BibTeX</option>
+    </select>
+  </div>
+</nav>
+
+<!-- ==================== 1. TITULAR ==================== -->
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-widescreen">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+        <h1 class="title is-2" style="color: var(--tailrl); margin-bottom: 0.9rem;">
+          Tail-Likelihood Reinforcement Learning
+        </h1>
+
+        <div class="publication-authors">
+          <div class="author-line">
+            <a href="https://stablegradients.github.io">Shrinivas Ramasubramanian</a><sup>1</sup>,
+            <a href="https://daman1209arora.github.io/">Daman Arora</a><sup>1</sup>,
+            <a href="https://tajwarfahim.github.io/">Fahim Tajwar</a><sup>1</sup>,
+            <a href="https://scholar.google.com/citations?user=SU6ooAQAAAAJ">Guanning Zeng</a><sup>1</sup>
+          </div>
+          <div class="author-line">
+            Qingyang Wu<sup>4</sup>,
+            Zhongzhu Zhou<sup>4</sup>,
+            Chenfeng Xu<sup>4</sup>
+          </div>
+          <div class="author-line">
+            <a href="https://havenfeng.github.io/">Haiwen Feng</a><sup>2,3</sup>,
+            <a href="https://yudasong.github.io/">Yuda Song</a><sup>1</sup>,
+            <a href="https://www.cs.cmu.edu/~aarti/">Aarti Singh</a><sup>1</sup>,
+            <a href="https://www.cs.cmu.edu/~rsalakhu/">Ruslan Salakhutdinov</a><sup>1</sup>
+          </div>
+          <div class="author-line">
+            J. Andrew Bagnell<sup>5,1</sup>,
+            <a href="https://www.cs.cmu.edu/~schneide/">Jeff Schneider</a><sup>1,&dagger;</sup>,
+            <a href="https://azanette.com">Andrea Zanette</a><sup>1,&dagger;</sup>
+          </div>
+        </div>
+
+        <div class="publication-affiliations">
+          <sup>1</sup>Carnegie Mellon University &nbsp;&nbsp;
+          <sup>2</sup>University of California, Berkeley &nbsp;&nbsp;
+          <sup>3</sup>Impossible, Inc. &nbsp;&nbsp;
+          <sup>4</sup>Together AI &nbsp;&nbsp;
+          <sup>5</sup>Aurora Innovation<br>
+          <sup>&dagger;</sup>Joint advising
+        </div>
+
+        <div class="publication-contact">
+          <code>{shrinivr, jeff4, azanette}@andrew.cmu.edu</code>
+          &nbsp;·&nbsp; Preprint, 2026
+        </div>
+
+        <div class="btn-row is-centered">
+          <span class="btn" aria-disabled="true" role="link" title="The preprint is not public yet">
+            <span class="icon"><img src="./static/images/arxiv-logomark-small.svg" alt="" width="14" height="14" style="vertical-align: middle;"></span>
+            <span>Paper</span> <span class="btn-note">soon</span>
+          </span>
+          <span class="btn" aria-disabled="true" role="link" title="The code release is not public yet">
+            <span>Code</span> <span class="btn-note">soon</span>
+          </span>
+          <button type="button" class="btn" data-target="bibtex-src" data-status="copy-status-hero">BibTeX</button>
+          <span class="copy-ok" id="copy-status-hero" role="status" aria-live="polite"></span>
+        </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 2. WHAT IS THE TAIL LIKELIHOOD ==================== -->
+<!-- ==================== TEASER ==================== -->
+<section class="section section-narrow section-gray" id="teaser">
+  <div class="container is-max-desktop">
+    <figure class="figure-container" style="margin-top: 0;">
+      <img loading="lazy" decoding="async" src="./static/images/gui_scales.png?v=130" width="1669" height="987"
+           alt="Pass@k, Best-of-k reward and training accuracy for Qwen2.5-VL 3B and 7B on ScreenSpot-Pro. The TailRL Pass@k curves keep climbing with the rollout budget while RLOO flattens and GRPO trails, even though training accuracy is similar for all three.">
+      <figcaption class="figure-caption">
+        Policies that look alike after training can behave very differently once you sample from them. On GUI
+        grounding, all three methods reach similar training accuracy, but only the TailRL policy keeps improving as
+        the inference budget grows: the others flatten out, and the rollouts worth finding stop being found.
+      </figcaption>
+    </figure>
+
+    <h2 class="title is-3 section-title" style="margin-top: 2rem;">TailRL trains for every sampling budget at once</h2>
+    <div class="content has-text-justified">
+      <p>
+        TailRL's gradient is a harmonic combination of Best-of-$k$ gradients. Rather than committing to one sampling
+        budget, it improves the policy at all of them together, and the $1/k$ weights fall out of the objective
+        rather than being chosen.
+      </p>
+    </div>
+
+    <div class="math-comparison one">
+      <div class="math-box is-tail is-compact">
+        <p class="math-line">
+          $J_{\mathrm{TailRL}}(\theta;x) = \displaystyle\sum_{k=1}^{\infty}\frac{\text{Best-of-}k(\theta;x)-1}{k}$
+        </p>
+        <p class="math-line" style="margin-top: 0.6rem;">
+          $\nabla_\theta J_{\mathrm{TailRL}}(\theta;x) = \displaystyle\sum_{k=1}^{\infty}\frac{1}{k}\,\nabla_\theta\,\text{Best-of-}k(\theta;x)$
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-narrow section-white" id="tail">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">What is Tail-Likelihood?</h2>
+    <figure class="explain-split">
+      <img src="./static/images/tailprob_density.png" width="1089" height="702"
+           alt="A reward density over the unit interval. A dashed line at a threshold tau splits it, and the shaded mass to the right of tau is labelled as the probability that a rollout's reward exceeds tau.">
+      <div class="notes">
+        <p>
+          For an input $x$, the policy and the reward function induce a distribution over rewards. The probability
+          that the reward $r$ lies above a threshold $\tau$ is the <strong>tail-probability</strong>
+          $p_\theta(x,\tau)$.
+        </p>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- ==================== 3. WHY TAIL-LIKELIHOOD ==================== -->
+<section class="section section-narrow section-gray" id="why">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Why Tail-Likelihood Reinforcement Learning?</h2>
+    <div class="wrap-block">
+    <figure class="figure-container wrap-figure">
+      <img data-play-in-view="./static/images/reshape_teaser.gif"
+           data-static="./static/images/reshape_teaser_last.png"
+           src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+           width="962" height="663"
+           alt="Reward densities on the unit interval. The base policy is broad and low. GRPO collapses to a narrow peak at a moderate reward. TailRL sits further right and keeps a second lobe of mass in the high-reward tail, so its mean is higher and its tail is thicker.">
+    </figure>
+    <div class="content">
+      <p class="wrap-prose">
+        Standard reinforcement learning only maximizes the mean reward, losing coverage over rare excellent
+        outputs. TailRL maximizes the policy's mean reward while simultaneously maximizing its tail-probabilities.
+      </p>
+    </div>
+    </div>
+  
+    <figure class="figure-container" style="margin-top: 1.75rem;">
+      <img loading="lazy" decoding="async" src="./static/images/teaser_tugofwar.png?v=130" width="4235" height="1104"
+           alt="Three panels. Left: RL post-training reshapes the base policy's reward distribution; GRPO and RLOO sharpen it around the mean while TailRL grows a heavy high-reward tail. Middle: expected-reward RL pulls a single rope, the mean. Right: TailRL pulls a rope at every reward threshold, hardest at the rarest.">
+      <figcaption class="figure-caption">
+        <strong>Expected reward pulls one rope; TailRL pulls them all.</strong>
+        Expected-reward methods shift the reward distribution and sharpen it around the mean, improving it through
+        that single handle. TailRL pulls up the tail-probability $p_\theta(x,\tau)$ at every threshold at once,
+        hardest at the rarest, and grows a heavy high-reward tail.
+      </figcaption>
+    </figure>
+</div>
+</section>
+
+<!-- ==================== 4. PI_A vs PI_B INTERACTIVE ==================== -->
+<section class="section section-narrow section-white" id="compare">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Let's manipulate the reward distribution</h2>
+    <div class="content has-text-justified">
+      <p>
+        Two policies can have the same expected reward and very different odds of producing an exceptional sample.
+        Every preset opens as a matched pair with equal mean reward but different tail probabilities. This difference
+        is reflected in their Best-of-$k$ as we increase sampling.
+      </p>
+      <p class="do-this">
+        Drag inside either histogram to move mass between reward values.
+      </p>
+    </div>
+
+    <div class="explorer" id="smt-widget">
+      <div class="explorer-head">
+        <span class="label-text">Presets</span>
+        <span id="smt-presets"></span>
+        <button type="button" class="reset" id="smt-reset" aria-label="Reset the same-mean widget to a fresh random pair">Reset</button>
+      </div>
+      <div class="smt-grid">
+        <svg id="smt-hist-a" viewBox="0 0 360 220" role="img" aria-label="Editable reward distribution for policy pi A"></svg>
+        <svg id="smt-hist-b" viewBox="0 0 360 220" role="img" aria-label="Editable reward distribution for policy pi B"></svg>
+      </div>
+      <div class="smt-grid">
+        <svg id="smt-tail" viewBox="0 0 360 220" role="img" aria-label="Tail-probability curves for both policies"></svg>
+        <svg id="smt-bok" viewBox="0 0 360 220" role="img" aria-label="Best-of-k against the rollout budget for both policies"></svg>
+      </div>
+    </div>
+
+    <p class="keyline">
+      Even if the mean is identical, the policy with the stronger tail keeps improving as sampling compute grows.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== 5. TAILRL: OBJECTIVE AND GRADIENT ==================== -->
+<section class="section section-narrow section-gray" id="tailrl">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Tail-Likelihood Reinforcement Learning</h2>
+
+    <div class="math-comparison obj-row">
+      <div class="math-box is-rl">
+        <h4>Expected-reward RL</h4>
+        <p class="math-line">
+          $J_{\mathrm{RL}}(\theta;x) := \mathbb{E}_{z\sim\pi_\theta(\cdot\mid x)}\!\left[\,r(x,z)\,\right]$
+        </p>
+        <p class="math-note">Expected reward</p>
+      </div>
+      <div class="math-box is-tail">
+        <h4>TailRL</h4>
+        <p class="math-line">
+          $J_{\mathrm{TailRL}}(\theta;x) := \displaystyle\int_0^1 \log p_\theta(x,\tau)\,d\tau$
+        </p>
+        <p class="math-note">Expected log tail-probability across reward thresholds</p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified">
+      <p>
+        TailRL is the expected log tail-probability over uniformly sampled thresholds.
+      </p>
+      <p>
+        On binary rewards every nontrivial threshold asks the same question, did the rollout succeed, so the integral
+        collapses to a single log-likelihood and TailRL reduces exactly to
+        <a href="https://zanette-labs.github.io/MaxRL" target="_blank" rel="noopener">MaxRL</a>.
+      </p>
+      <p>
+        The gradients of both objectives are a weighted sum of the score-function
+        $S(x,z) := \nabla_\theta \log \pi_\theta(z \mid x)$.
+      </p>
+    </div>
+
+    <div class="math-comparison grad-row">
+      <div class="math-box is-rl">
+        <h4>Expected-reward RL</h4>
+        <p class="math-line">
+          $\nabla_\theta J_{\mathrm{RL}}(\theta;x) = \mathbb{E}_{z}\!\left[\,r(x,z)\,S(x,z)\right]$
+        </p>
+        <p class="math-note">Weight: the reward itself</p>
+      </div>
+      <div class="math-box is-tail">
+        <h4>TailRL</h4>
+        <p class="math-line">
+          $\nabla_\theta J_{\mathrm{TailRL}}(\theta;x) = \mathbb{E}_{z}\!\left[\left(\displaystyle\int_0^{r(x,z)}\frac{d\tau}{p_\theta(x,\tau)}\right)S(x,z)\right]$
+        </p>
+        <p class="math-note">Weight: expected inverse tail-probability</p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified">
+      <p>
+        TailRL upweights the gradient of rollouts that are rare and excellent. Where the tail-probability
+        $p_\theta(x,\tau)$ is low, $1/p_\theta(x,\tau)$ is large, so a rollout clearing reward thresholds the policy
+        almost never reaches counts for far more than its reward alone would say.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 6. BEST-OF-K DECOMPOSITION ==================== -->
+<section class="section section-narrow section-white" id="harmonic">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Aligned with inference time objectives</h2>
+    <div class="content has-text-justified">
+      <p>
+        The gradient of TailRL naturally decomposes as harmonically weighted gradients of Best-of-$k$ objectives.
+      </p>
+    </div>
+
+    <div class="math-comparison one">
+      <div class="math-box is-tail is-compact">
+        <p class="math-line">
+          $J_{\mathrm{TailRL}}(\theta;x) = \displaystyle\sum_{k=1}^{\infty}\frac{\text{Best-of-}k(\theta;x)-1}{k}$
+        </p>
+        <p class="math-line" style="margin-top: 0.6rem;">
+          $\nabla_\theta J_{\mathrm{TailRL}}(\theta;x) = \displaystyle\sum_{k=1}^{\infty}\frac{1}{k}\,\nabla_\theta\,\text{Best-of-}k(\theta;x)$
+        </p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified">
+      <p>
+        The harmonic weights $1/k$ are derived from the Maclaurin series of the logarithm. They are not selected or
+        tuned. The sum runs over every budget, so TailRL combines Best-of-$k$ objectives across inference budgets
+        instead of committing to one.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 7. CONTINUOUS REWARDS DECOMPOSE ==================== -->
+<section class="section section-narrow section-gray" id="decompose">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Computing tail probabilities from finite rollouts</h2>
+    <div class="content has-text-justified">
+      <p>
+        During training you never see the true tail probability. You see a group of $N$ rollouts and their rewards.
+        Estimating it is just counting: fix a reward threshold $\tau$ and ask how many of the $N$ rollouts beat it.
+      </p>
+    </div>
+
+    <div class="formula-box" style="margin: 1.25rem 0 1rem 0;">
+      <p style="font-size: 1.32rem; margin: 0;">
+        $\hat p_\theta(x,\tau) \;=\; \dfrac{1}{N}\displaystyle\sum_{i=1}^{N}\mathbf{1}\!\left\{r_i > \tau\right\}$
+      </p>
+    </div>
+
+    <div class="content has-text-justified">
+      <p>
+        Now slide the threshold from $0$ up to $1$. At each threshold we ask what fraction of rollouts attained a
+        higher reward. That staircase is the tail-probability curve.
+      </p>
+    </div>
+
+    <figure class="figure-container" style="margin-top: 1.75rem;">
+      <img src="./static/images/decomposition_teaser.gif"
+             data-static="./static/images/teaser_decomposition.png"
+             width="1650" height="550"
+             alt="A rollout's continuous reward is compared against a ladder of reward thresholds; each comparison is a pass/fail test, and averaging the passes across a group of rollouts traces the tail-probability curve.">
+    </figure>
+
+  </div>
+</section>
+
+<!-- ==================== 8. ALGORITHM ==================== -->
+<section class="section section-narrow section-white" id="algorithm" data-sj-whole>
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Easy plug-in for RLVR pipelines</h2>
+    <div class="content has-text-justified">
+      <p>
+        In an existing RLVR pipeline this is a few lines inside the advantage computation: no critic, and no new
+        hyperparameter. The advantages can simply be written as:
+      </p>
+    </div>
+
+    <div class="formula-box" style="margin: 1.25rem 0 0.75rem 0;">
+      <p style="font-size: 1.32rem; margin: 0;">
+        $\omega\!\left(r_{(i)}\right) = \displaystyle\sum_{k=1}^{i}\frac{r_{(k)}-r_{(k-1)}}{N-k+1},
+        \qquad A_i = \omega(r_i) - \bar\omega$
+      </p>
+    </div>
+    <details class="deep" style="margin: 1rem 0 1.5rem 0;">
+      <summary>Pseudocode</summary>
+      <div class="deep-body">
+        <ol class="algo-steps">
+          <li class="algo-io"><span class="algo-kw">Require</span> rewards $r_1,\ldots,r_N$ from $N$ training rollouts for an input $x$</li>
+          <li>Sort the rewards increasingly: $r_{(1)}\le\cdots\le r_{(N)}$</li>
+          <li>Keep the sorting permutation, and set $r_{(0)}\gets 0$ and $\omega_{(0)}\gets 0$</li>
+          <li><span class="algo-kw">for</span> $i=1,\ldots,N$ <span class="algo-kw">do</span>
+            <ol><li>$\omega_{(i)}\gets\omega_{(i-1)}+\dfrac{r_{(i)}-r_{(i-1)}}{N-i+1}$</li></ol>
+          </li>
+          <li>$\bar\omega\gets\dfrac{1}{N}\sum_{j=1}^{N}\omega_{(j)}$</li>
+          <li><span class="algo-kw">for</span> $i=1,\ldots,N$ <span class="algo-kw">do</span>
+            <ol><li>$A_{(i)}\gets\omega_{(i)}-\bar\omega$</li></ol>
+          </li>
+          <li>Undo the sorting permutation: $A_{(1)},\ldots,A_{(N)}\rightarrow A_1,\ldots,A_N$</li>
+          <li class="algo-io"><span class="algo-kw">Ensure</span> advantages $A_1,\ldots,A_N$</li>
+        </ol>
+      </div>
+    </details>
+
+    <div style="margin: 0 0 0.5rem 0;">
+      <iframe id="tailrl-code-frame" src="./code.html?v=130" title="TailRL advantage computation as a diff against GRPO"
+              width="900" height="662"
+              style="border: none; overflow: hidden; width: 100%; display: block;"
+              scrolling="no"></iframe>
+    </div>
+    <p class="figure-caption is-centered">In a group-based RLVR pipeline, only the advantage computation changes.</p>
+
+  </div>
+</section>
+
+<!-- ==================== 9. ADVANTAGE INTERACTIVE ==================== -->
+<section class="section section-narrow section-gray" id="advantages">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Comparing REINFORCE and TailRL advantages</h2>
+    <div class="content has-text-justified">
+      <p>
+        Both methods see identical rollouts and turn them into advantages. REINFORCE promotes a rollout by its raw
+        margin over the group, so its update is spread roughly in proportion to reward. TailRL splits each reward gap
+        among the rollouts that reach it, so a gap only the best rollout clears is worth $N$ times a gap everybody
+        clears.
+      </p>
+      <p class="do-this">
+        Draw your own reward distribution, then set how many rollouts are drawn from it.
+      </p>
+    </div>
+
+    <div class="explorer" id="tailrl-explorer">
+      <div class="explorer-head">
+        <span class="ctl-line">
+          <span class="label-text">Rollouts $N$</span>
+          <input type="range" id="ex-n-slider" min="0" max="3" step="1" value="1"
+                 list="ex-n-stops"
+                 aria-label="Number of rollouts: 16, 64, 256 or 1024">
+          <datalist id="ex-n-stops">
+            <option value="0" label="16"></option><option value="1" label="64"></option>
+            <option value="2" label="256"></option><option value="3" label="1024"></option>
+          </datalist>
+          <span id="ex-n-value" class="label-text" style="min-width: 3.5em; color: var(--text-dark); font-weight: 600;">64</span>
+        </span>
+        <span class="ctl-line">
+          <span class="label-text">Distribution</span>
+          <span id="ex-preset-buttons"></span>
+          <button type="button" class="reset" id="ex-reset" aria-label="Reset the rollout explorer to its default state">Reset</button>
+        </span>
+      </div>
+      <svg id="ex-svg-rewards" viewBox="0 0 760 300" role="img" aria-label="A reward distribution you can draw, above the rollouts drawn from it"></svg>
+      <svg id="ex-svg-adv" viewBox="0 0 760 250" role="img" aria-label="Advantages assigned by REINFORCE and by TailRL to the same rollout group"></svg>
+      <div class="hint">Drag inside the shaded band to reshape the reward distribution. Each advantage panel is scaled by its own largest magnitude, so compare the shape; the printed bounds carry the scale.</div>
+    </div>
+
+    <p class="keyline">
+      Rare, exceptional rollouts stay visible to the update instead of disappearing into the mean.
+    </p>
+
+  </div>
+</section>
+
+<!-- ==================== 10. RESULTS ==================== -->
+<section class="section section-narrow section-white" id="results">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">TailRL moves the sampling-compute frontier</h2>
+    <div class="content has-text-justified">
+      <p>
+        Across every tested model and task, TailRL improves the performance-versus-sampling-compute frontier over
+        expected-reward baselines. The largest gaps appear when exceptional outcomes are rare, or when a safe,
+        moderate shortcut dominates the mean.
+      </p>
+    </div>
+
+    <div class="result-card" id="imagenet">
+      <h4>ImageNet Object Localization</h4>
+      <p>
+        Put a box around the object, without naming it. A rollout is one sampled box, scored by its overlap (IoU)
+        with the true box. The set of boxes is finite, so here the exact objective can be computed rather than
+        estimated.
+      </p>
+
+      <span class="eyebrow">How good is the population-level objective?</span>
+      <p>
+        Trained on overlap alone, population TailRL matches or beats supervised objectives that see the true
+        coordinates, leading the strongest of them, L1+GIoU, on both CorLoc thresholds.
+      </p>
+      <figure class="figure-container">
+        <img loading="lazy" decoding="async" src="./static/images/imagenet_sup_curves.png?v=130" width="1644" height="522"
+             alt="Three panels showing CorLoc at 0.5, CorLoc at 0.75 and mean IoU against training epochs. The population TailRL curve sits at or above the L1, GIoU and L1+GIoU supervised baselines throughout.">
+        <figcaption class="figure-caption">
+          CorLoc@$0.5$, CorLoc@$0.75$ and mean IoU for population TailRL against the supervised baselines L1, GIoU
+          and L1+GIoU.
+        </figcaption>
+      </figure>
+
+      <div class="takeaway-box">
+        <p><span class="takeaway-title">Takeaway</span>
+        <span class="takeaway-body">Using only a scalar reward, the population-level objective performs as well as or better than task-specific supervised objectives.</span></p>
+      </div>
+
+      <span class="eyebrow">Does the finite estimator approach the exact objective?</span>
+      <p>
+        Larger training groups move the estimator toward that exact objective, and every TailRL budget stays above
+        the expected-reward baselines.
+      </p>
+      <figure class="figure-container">
+        <img loading="lazy" decoding="async" src="./static/images/imagenet_rl_curves.png?v=130" width="1644" height="581"
+             alt="Three panels showing CorLoc at 0.5, mean IoU and Best-of-1024 IoU against training epochs. TailRL curves at increasing rollout budgets rise toward a dashed exact-objective reference, and all sit above the GRPO, RLOO and PKPO curves.">
+        <figcaption class="figure-caption">
+          CorLoc@$0.5$, mean IoU and Best-of-$1024$ IoU on the held-out validation set. TailRL trains at
+          $N\in\{16,64,256,1024\}$, darker curves for larger $N$; the dashed curve optimizes the exactly computed
+          population objective. GRPO, RLOO and PKPO ($k_{\mathrm{opt}}=16$) use $N=1024$.
+        </figcaption>
+      </figure>
+      <div class="takeaway-box">
+        <p><span class="takeaway-title">Takeaway</span>
+        <span class="takeaway-body">As the training rollout budget grows, the finite-rollout estimator converges to the population-level objective.</span></p>
+      </div>
+    </div>
+
+    <div class="result-card" id="maze">
+      <h4>Maze Navigation: Bootstrapping from Weak Initializations</h4>
+      <p>
+        A small transformer solves mazes written as text. Stopping pretraining at different points gives starting
+        policies from almost hopeless to occasionally successful. Reward gives partial credit for getting closer to
+        the goal, and more for shorter paths.
+      </p>
+
+      <span class="eyebrow">Can RL learn when exceptional outcomes are almost absent?</span>
+      <div class="pair-block">
+      <figure class="figure-container pair-figure">
+        <img loading="lazy" decoding="async" src="./static/images/maze_init_sweep_wrap.png?v=130"
+             width="834" height="691"
+             alt="Pass@1 after RL plotted against Pass@1 before RL for TailRL, GRPO, RLOO and PKPO. In the shaded poor-initialization region the TailRL curve stays high, RLOO and GRPO start at zero, and PKPO sits well below TailRL.">
+        <figcaption class="figure-caption">
+          Pass@$1$ before and after post-training with $N=16$. The shaded region marks poor policy initialization.
+        </figcaption>
+      </figure>
+      <p>
+        From a poor initialization, GRPO and RLOO fail to improve reliably. TailRL holds up across the whole
+        sweep; PKPO trails it everywhere and falls off once successes are common.
+      </p>
+      </div>
+      <div class="takeaway-box">
+        <p><span class="takeaway-title">Takeaway</span>
+        <span class="takeaway-body">TailRL outperforms the other methods when the initial policy has poor coverage over rare excellent rollouts.</span></p>
+      </div>
+    </div>
+
+    <div class="result-card" id="code-opt">
+      <h4>Code Runtime Optimization</h4>
+      <span class="eyebrow">Can the objective escape a safe but useless shortcut?</span>
+      <div class="float-block">
+      <figure class="figure-container wrap-right">
+        <img loading="lazy" decoding="async" src="./static/images/pie_rollout_dist_v2.png?v=130" width="791" height="633"
+             alt="The initial reward distribution on PIE: a large mass of incorrect rollouts at zero, a tall spike at a speedup of one from copying the input, and a thin tail of correct and faster programs.">
+        <figcaption class="figure-caption">
+          Initial rewards for Qwen3-1.7B-Instruct: $74.4\%$ of rollouts are incorrect, $23.5\%$ are correct but no
+          faster than the input and pile up in the spike at $1\times$, and only $2.1\%$ are correct and faster.
+        </figcaption>
+      </figure>
+      <div class="float-prose">
+      <p>
+        Each input is a slow C++ program, and the model rewrites it to run faster without breaking it. A rollout
+        scores zero if it fails any test, otherwise its speedup over the input, timed in gem5 so noise cannot fake
+        a gain.
+      </p>
+      <p>
+        Copying the input passes every test and earns reward $1$. It is by far the easiest thing to reach.
+      </p>
+      
+      </div>
+      </div>
+
+      <figure class="figure-container">
+        <img loading="lazy" decoding="async" src="./static/images/pie_results_v3.png?v=130" width="1652" height="521"
+             alt="Three panels: mean training reward over one epoch, the density of per-problem Best-of-1024 reward on the test set, and correctness probability during training. TailRL's reward climbs well above the copying value while GRPO and RLOO settle at it.">
+        <figcaption class="figure-caption">
+          Mean reward over one epoch (left), per-problem Best-of-$1024$ reward on the test set (middle), where GRPO
+          and RLOO coincide at $1.0$, and the fraction of rollouts passing every test (right).
+        </figcaption>
+      </figure>
+      <div class="takeaway-box">
+        <p><span class="takeaway-title">Takeaway</span>
+        <span class="takeaway-body">When an easy suboptimal solution exists, expected-reward methods settle for it. TailRL keeps searching and learns to produce rarer and better outcomes.</span></p>
+      </div>
+    </div>
+
+    <div class="result-card" id="gui" data-sj-whole>
+      <h4>GUI Grounding with Vision-Language Models</h4>
+      <span class="eyebrow">Do similar one-sample policies scale differently with more inference?</span>
+      <p>
+        Given a screenshot and an instruction, the model outputs where to click. Reward combines how close the
+        click lands, a bonus for landing inside the target, and a format bonus. Qwen2.5-VL at 3B and 7B, evaluated
+        on ScreenSpot-Pro.
+      </p>
+
+      <figure class="figure-container">
+        <img loading="lazy" decoding="async" src="./static/images/gui_scales.png?v=130" width="1669" height="987"
+             alt="Pass@k, Best-of-k reward and training accuracy for Qwen2.5-VL 3B and 7B on ScreenSpot-Pro. The TailRL Pass@k curves keep climbing with the rollout budget while RLOO flattens and GRPO trails, even though training accuracy is similar for all three.">
+        <figcaption class="figure-caption">
+          ScreenSpot-Pro after post-training Qwen2.5-VL-3B (top) and 7B (bottom). Columns are Pass@$k$, Best-of-$k$
+          reward, and smoothed training accuracy.
+        </figcaption>
+      </figure>
+      <div class="takeaway-box">
+        <p><span class="takeaway-title">Takeaway</span>
+        <span class="takeaway-body">TailRL scales better with inference compute than the expected-reward baselines.</span></p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified" style="margin-top: 2rem;">
+      <p>
+        Expected-reward training fails in two ways: it overlooks rare good outcomes, or it collapses to a frequent
+        moderate one. TailRL addresses both by keeping rarely reached reward thresholds influential.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CLOSING ==================== -->
+<section class="section closing">
+  <div class="container is-max-desktop">
+    <div class="btn-row">
+      <span class="btn" aria-disabled="true" role="link">Read the paper <span class="btn-note">soon</span></span>
+      <span class="btn" aria-disabled="true" role="link">View the code <span class="btn-note">soon</span></span>
+      <button type="button" class="btn btn-primary" id="copy-bibtex" data-target="bibtex-src" data-status="copy-status">Copy BibTeX</button>
+      <span class="copy-ok" id="copy-status" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== BIBTEX ==================== -->
+<section class="section section-white" id="bibtex" style="padding-top: 2.5rem;">
+  <div class="container is-max-desktop content">
+    <h2 class="title is-4 section-title">BibTeX</h2>
+    <div class="bibtex-box">
+<pre><code id="bibtex-src">@article{ramasubramanian2026tailrl,
+  title   = {Tail-Likelihood Reinforcement Learning},
+  author  = {Ramasubramanian, Shrinivas and Arora, Daman and Tajwar, Fahim and Zeng, Guanning
+             and Wu, Qingyang and Zhou, Zhongzhu and Xu, Chenfeng and Feng, Haiwen and Song, Yuda
+             and Singh, Aarti and Salakhutdinov, Ruslan and Bagnell, J. Andrew and Schneider, Jeff
+             and Zanette, Andrea},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered" style="margin-bottom: 1.25rem;">
+      <a href="https://www.cmu.edu/" target="_blank" rel="noopener">
+        <img loading="lazy" src="./static/images/cmu_logo.png" width="900" height="900"
+             alt="Carnegie Mellon University" style="height: 76px; width: auto; border-radius: 4px;">
+      </a>
+    </div>
+    <div class="columns is-centered">
+      <p>
+        Corresponding authors:
+        <a href="mailto:shrinivr@andrew.cmu.edu">Shrinivas Ramasubramanian</a>,
+        <a href="mailto:jeff4@andrew.cmu.edu">Jeff Schneider</a>,
+        <a href="mailto:azanette@andrew.cmu.edu">Andrea Zanette</a>
+      </p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

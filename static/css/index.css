@@ -1,0 +1,1010 @@
+@charset "UTF-8";
+/* ===========================================================================
+   Computer Modern (CMU Serif). The page's display math is already set in
+   KaTeX's Computer Modern faces, and the tail-probability illustration is
+   typeset in LaTeX, so the running text now uses the same family. Own
+   @font-face rules rather than the package's stylesheet, which declares
+   `font-style: roman` -- not a valid CSS value. Bold italic is omitted and
+   left to synthesis; it appears nowhere on the page.
+   ========================================================================= */
+@font-face {
+  font-family: 'CMU Serif'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/fonts/cmu-serif-500-roman.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'CMU Serif'; font-style: italic; font-weight: 400; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/fonts/cmu-serif-500-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'CMU Serif'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/npm/computer-modern@0.1.2/fonts/cmu-serif-700-roman.woff2') format('woff2');
+}
+:root {
+  /* KaTeX_Main is the same design, so it covers any glyph CMU Serif misses */
+  --cm: 'CMU Serif', 'KaTeX_Main', 'Latin Modern Roman', Georgia, serif;
+}
+
+:root {
+  --primary: #363636;
+  --primary-light: #4a4a4a;
+  --text-dark: #1f2937;
+  --text-muted: #1f2937;
+  --bg-white: #ffffff;
+  --bg-gray: #f9fafb;
+  --border-light: #e5e7eb;
+  /* Method colors, sampled from the paper's figures */
+  --tailrl: #C0392B;
+  --tailrl-dark: #9d2a20;
+  --grpo: #46628F;
+  --rloo: #1D9E75;
+}
+
+body { color: var(--text-dark); font-family: var(--cm); font-size: 1.2rem; }
+
+.hero { background: #f3f4f6; border-bottom: 1px solid #e5e7eb; overflow: visible !important; }
+.hero .hero-body { padding-top: 2rem; padding-bottom: 0.8rem; overflow: visible !important; }
+.hero * { overflow: visible !important; }
+.hero .container, .hero .columns, .hero .column { overflow: visible !important; max-height: none !important; }
+.hero .title.is-1 { color: var(--tailrl); font-weight: 400; font-family: var(--cm); }
+.hero .publication-authors a { color: #1f2937 !important; }
+.hero .publication-authors a:hover { color: var(--tailrl) !important; text-decoration: underline; }
+.hero .publication-authors span { color: #1f2937; }
+
+.publication-links .button {
+  margin: 0.25rem;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #1f2937;
+}
+.publication-links .button:hover {
+  background: #f3f4f6;
+  border-color: #1f2937;
+  color: #1f2937;
+}
+
+/* Section titles */
+h2.section-title,
+h3.section-title,
+h4.subsection-title,
+.title.section-title {
+  color: var(--primary) !important;
+  font-weight: 600;
+  font-family: var(--cm);
+  margin-bottom: 1.5rem;
+}
+
+h4.subsection-title {
+  font-size: 0.75rem;
+  font-family: var(--cm);
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Body text */
+.content p, .content li {
+  font-family: var(--cm);
+  font-size: 1.2rem;
+  line-height: 1.7;
+}
+
+.section-white { background: var(--bg-white); }
+.section-gray { background: var(--bg-gray); }
+
+.insight-box {
+  background: #fafafa;
+  border: 1px solid var(--border-light);
+  border-left: 4px solid #9ca3af;
+  padding: 1.5rem 2rem;
+  border-radius: 4px;
+  margin: 1.5rem 0;
+}
+.insight-box p {
+  font-family: var(--cm);
+  font-size: 1.32rem;
+}
+
+.math-comparison {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+.math-comparison.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 768px) { .math-comparison, .math-comparison.three { grid-template-columns: minmax(0, 1fr); } }
+
+.math-box {
+  background: #fff;
+  border-radius: 6px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-light);
+}
+.math-box h4 { font-weight: 600; margin-bottom: 1rem; color: var(--text-dark); }
+.math-box .math-note { color: var(--text-muted); font-size: 1.08rem; margin-top: 1rem; text-align: center; }
+
+.figure-container {
+  background: transparent;
+  border-radius: 0;
+  padding: 1rem 0;
+  border: none;
+  margin: 1.5rem 0;
+}
+.figure-container img {
+  border-radius: 4px;
+  /* plots centre in the column even when they are narrower than it */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+.figure-caption { font-size: 1.08rem; color: var(--text-muted); margin-top: 1rem; text-align: left; }
+/* opt-out for a caption that reads as a standalone label rather than prose */
+.figure-caption.is-centered { text-align: center; }
+
+.result-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--border-light);
+}
+.result-card h4 { color: var(--tailrl); font-weight: 600; font-size: 1.6rem;
+                  line-height: 1.3; margin-bottom: 0.6rem; }
+.result-card .task-tag {
+  display: inline-block;
+  font-family: var(--cm);
+  font-size: 0.936rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.takeaway-box {
+  background: #fdf6d8;
+  border: 1px solid #e6d48a;
+  border-left: 4px solid #d9ab1f;
+  padding: 1.25rem 1.75rem;
+  border-radius: 4px;
+  margin: 1.5rem 0 0 0;
+}
+.takeaway-box p { margin: 0; font-family: var(--cm); }
+/* measured 5.9:1 on the yellow ground; #8a6a00 was only 4.67:1 */
+.takeaway-box .takeaway-title {
+  font-weight: 700; color: #705400; display: block; margin-bottom: 0.25rem;
+  font-variant: small-caps; letter-spacing: 0.03em;
+}
+.takeaway-box .takeaway-body { color: var(--text-dark); font-size: 1.176rem; font-weight: 700; }
+
+table.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  overflow: hidden;
+}
+table.comparison-table th {
+  background: var(--primary);
+  color: #fff !important;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  text-align: left;
+}
+table.comparison-table th * { color: #fff !important; }
+table.comparison-table th .katex, table.comparison-table th .katex * { color: #fff !important; }
+table.comparison-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+table.comparison-table tr:last-child td { border-bottom: none; }
+table.comparison-table tr:hover td { background: var(--bg-gray); }
+.comparison-table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+pre code { display: block; padding: 1rem; background: #1f2937; color: #e5e7eb; border-radius: 6px; overflow-x: auto; }
+.bibtex-box {
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+.bibtex-box pre { margin: 0; background: transparent; }
+.bibtex-box code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: #e5e7eb;
+  background: transparent;
+  padding: 0;
+}
+
+footer.footer { background: #1f2937; color: #ffffff; padding: 2rem; overflow: hidden; }
+footer.footer .columns { margin: 0; }
+footer.footer p { color: #ffffff; }
+footer.footer .container { overflow: hidden; }
+footer a { color: #93c5fd; }
+footer a:hover { color: #bfdbfe; }
+
+.section { padding: 3rem 1.5rem; }
+
+.formula-box {
+  background: transparent;
+  border: none;
+  padding: 1rem 0;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+/* ==================== INTERACTIVE ADVANTAGE EXPLORER ==================== */
+.explorer {
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  font-family: var(--cm);
+}
+.explorer .explorer-head { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: center; margin-bottom: 0.75rem; }
+.explorer .explorer-head .label-text { font-family: var(--cm); font-size: 1.02rem; color: var(--text-muted); margin-right: 0.25rem; }
+.explorer button {
+  font-family: var(--cm);
+  font-size: 1.02rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #fff;
+  color: #1f2937;
+  cursor: pointer;
+}
+.explorer button:hover { background: #f3f4f6; border-color: #1f2937; }
+.explorer button:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
+.explorer button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.explorer svg { width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
+.explorer .svg-label { font-family: var(--cm); font-size: 14.4px; fill: #1f2937; }
+.explorer .svg-title { font-family: var(--cm); font-size: 15.6px; font-weight: 600; fill: #1f2937; }
+.explorer .svg-tick { font-family: var(--cm); font-size: 13.2px; fill: #1f2937; }
+.explorer .rollout { cursor: grab; }
+.explorer .rollout:active { cursor: grabbing; }
+.explorer .readout {
+  font-family: var(--cm);
+  font-size: 0.984rem;
+  color: #1f2937;
+  background: #f9fafb;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  margin-top: 0.75rem;
+  line-height: 1.6;
+  min-height: 3.6em;
+}
+.explorer .hint { font-size: 1.08rem; color: var(--text-muted); margin-top: 0.5rem; }
+.explorer .readout .m-tailrl { color: var(--tailrl); font-weight: 600; }
+.explorer .readout .m-grpo { color: var(--grpo); font-weight: 600; }
+.explorer .readout .m-rloo { color: var(--rloo); font-weight: 600; }
+
+/* ---- "Same mean, different tail" widget ---- */
+.smt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 0.5rem; }
+@media (max-width: 768px) { .smt-grid { grid-template-columns: 1fr; } }
+.explorer .smt-check {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  font-family: var(--cm); font-size: 1.02rem;
+  color: var(--text-dark); cursor: pointer;
+}
+.explorer .smt-check input { accent-color: var(--tailrl); cursor: pointer; }
+.explorer input[type="range"] {
+  accent-color: var(--tailrl); width: 160px; cursor: pointer; vertical-align: middle;
+}
+.explorer input[type="range"]:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
+.explorer .smt-value { color: var(--text-dark); font-weight: 600; }
+.explorer .readout .smt-a { color: #236A85; font-weight: 600; }
+.explorer .readout .smt-b { color: #8A5A10; font-weight: 600; }
+
+/* ---- snap-scroll chrome: section rail + on/off toggle ---- */
+
+/* ==================== MOBILE RESPONSIVE STYLES ==================== */
+@media (max-width: 1024px) {
+  .hero .title.is-1 { font-size: 2.64rem; }
+}
+@media (max-width: 768px) {
+  .hero .hero-body { padding-top: 1.2rem; padding-bottom: 0.6rem; }
+  .hero .title.is-1 { font-size: 1.8rem; white-space: normal !important; line-height: 1.3; }
+  .publication-authors { font-size: 1.08rem !important; }
+  .publication-authors .author-block { display: inline; white-space: nowrap; }
+  .is-size-6.publication-authors { font-size: 0.96rem !important; }
+  .section { padding: 2rem 1rem; }
+  h2.title.is-3, .title.is-3.section-title { font-size: 0.84rem; }
+  h4.subsection-title { font-size: 0.66rem; }
+  .math-comparison { gap: 1rem; }
+  .math-box { padding: 1rem; }
+  .math-box p { font-size: 1.14rem; }
+  .formula-box { overflow-x: auto; padding: 0.5rem; }
+  .formula-box p { font-size: 1.08rem; }
+  .insight-box { padding: 1rem 1.25rem; }
+  .insight-box p { font-size: 1.2rem; }
+  .result-card { padding: 1.25rem; }
+  .result-card h4 { font-size: 1.32rem; }
+  .figure-caption { font-size: 0.96rem; }
+  table.comparison-table { min-width: 500px; font-size: 1.02rem; }
+  table.comparison-table th, table.comparison-table td { padding: 0.5rem 0.75rem; }
+  .bibtex-box { padding: 1rem; }
+  .bibtex-box code { font-size: 0.84rem; }
+  .publication-links .button { font-size: 1.02rem; padding: 0.4rem 0.8rem; }
+  footer.footer { padding: 1.5rem 1rem; }
+  footer.footer img { height: 60px !important; }
+  footer p { font-size: 1.02rem; }
+  .hero .hero-body p[style*="Castoro"] { font-size: 1.14rem !important; }
+  .explorer { padding: 1rem; }
+  .takeaway-box { padding: 1rem 1.25rem; }
+}
+@media (max-width: 480px) {
+  .hero .title.is-1 { font-size: 1.5rem; }
+  .publication-authors { font-size: 0.96rem !important; }
+  h2.title.is-3, .title.is-3.section-title { font-size: 0.75rem; }
+  .content p, .content li { font-size: 1.08rem; }
+  .math-box h4 { font-size: 1.14rem; }
+  .math-box p { font-size: 1.02rem; }
+  .result-card { padding: 1rem; }
+  .result-card h4 { font-size: 1.25rem; }
+  .formula-box p { font-size: 1.02rem; }
+  .result-card[style*="border-left"] { padding: 1rem; }
+  .result-card[style*="border-left"] h4 { font-size: 1.2rem; }
+  .result-card[style*="border-left"] div[style*="text-align: center"] { font-size: 1.08rem !important; }
+}
+
+img { max-width: 100%; height: auto; }
+.katex-display { overflow-x: auto; overflow-y: hidden; }
+.container { overflow-x: hidden; }
+.content { word-wrap: break-word; overflow-wrap: break-word; }
+@media (max-width: 768px) {
+  .result-card div[style*="text-align: center"] { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+a:focus-visible, button:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
+  
+/* ===========================================================================
+   New components for the rewritten page
+   ========================================================================= */
+
+/* ---- one measure ---------------------------------------------------------
+   Following the MaxRL template: `container is-max-desktop` is the single
+   content measure. Prose, figures, widgets, tables and disclosures all share
+   the same left and right edges so nothing steps in or out. */
+.section-narrow { padding: 3.25rem 1.5rem; }
+.content.has-text-justified > p { margin-bottom: 1rem; }
+
+/* ---- sticky section nav -------------------------------------------------- */
+.pagenav {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-light);
+}
+.pagenav .inner {
+  max-width: 960px; margin: 0 auto; padding: 0.5rem 1.5rem;
+  display: flex; align-items: center; gap: 1.25rem;
+}
+.pagenav .brand {
+  font-family: var(--cm); font-weight: 600;
+  color: var(--tailrl); font-size: 1.08rem; margin-right: auto;
+}
+.pagenav a {
+  font-family: var(--cm); font-size: 1.02rem;
+  color: var(--text-muted); text-decoration: none; padding: 0.2rem 0;
+  border-bottom: 2px solid transparent;
+}
+.pagenav a:hover { color: var(--text-dark); }
+.pagenav a.current { color: var(--tailrl); border-bottom-color: var(--tailrl); }
+.pagenav a:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
+.pagenav .links { display: flex; gap: 1.35rem; }
+.pagenav .jump { display: none; }
+@media (max-width: 768px) {
+  .pagenav .links { display: none; }
+  .pagenav .jump {
+    display: block; font-family: var(--cm); font-size: 1.02rem;
+    padding: 0.3rem 0.5rem; border: 1px solid var(--border-light); border-radius: 6px;
+    background: #fff; color: var(--text-dark);
+  }
+}
+/* anchors clear the sticky bar */
+[id] { scroll-margin-top: 68px; }
+
+
+
+/* ---- buttons ------------------------------------------------------------- */
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.2rem; }
+.btn-row.is-centered { justify-content: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: 0.45em;
+  font-family: var(--cm); font-size: 1.08rem;
+  padding: 0.45rem 0.95rem; border-radius: 999px;
+  border: 1px solid #d1d5db; background: #fff; color: #1f2937;
+  text-decoration: none; cursor: pointer;
+}
+.btn:hover { background: #f3f4f6; border-color: #1f2937; color: var(--text-dark); }
+.btn:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
+.btn-primary { background: var(--tailrl); border-color: var(--tailrl); color: #fff; }
+.btn-primary:hover { background: var(--tailrl-dark); border-color: var(--tailrl-dark); color: #fff; }
+/* a link whose destination does not exist yet: visible, never clickable */
+.btn[aria-disabled="true"] {
+  opacity: 0.5; cursor: not-allowed; pointer-events: none; background: #f9fafb;
+}
+.btn[aria-disabled="true"] .btn-note {
+  font-size: 0.9rem; color: var(--text-muted); font-style: italic;
+}
+
+/* ---- three-step story ---------------------------------------------------- */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin: 1.75rem 0; }
+@media (max-width: 860px) { .steps { grid-template-columns: 1fr; gap: 1.1rem; } }
+.step .step-n {
+  font-family: var(--cm); font-size: 0.9rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--tailrl);
+}
+.step h4 {
+  font-family: var(--cm); font-weight: 600; font-size: 1.224rem;
+  color: var(--text-dark); margin: 0.3rem 0 0.4rem 0;
+}
+.step p { font-size: 1.14rem; line-height: 1.6; color: #1f2937; margin: 0; }
+
+/* ---- key line (replaces most bordered boxes) ----------------------------- */
+.keyline {
+  border-left: 3px solid var(--tailrl); padding: 0.15rem 0 0.15rem 1.1rem;
+  text-align: left;
+  margin: 1.5rem 0; font-family: var(--cm);
+  font-size: 1.344rem; line-height: 1.55; color: var(--text-dark);
+}
+
+/* ---- gradient-weight comparison ------------------------------------------ */
+.weights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin: 1.75rem 0; }
+@media (max-width: 860px) { .weights { grid-template-columns: 1fr; } }
+.wcard { border-top: 3px solid var(--border-light); padding-top: 0.85rem; }
+.wcard.rl { border-top-color: var(--rloo); }
+.wcard.grpo { border-top-color: var(--grpo); }
+.wcard.tail { border-top-color: var(--tailrl); }
+.wcard .wname {
+  font-family: var(--cm); font-weight: 600; font-size: 1.14rem;
+  margin-bottom: 0.35rem;
+}
+.wcard.rl .wname { color: var(--rloo); }
+.wcard.grpo .wname { color: var(--grpo); }
+.wcard.tail .wname { color: var(--tailrl); }
+.wcard p { font-size: 1.116rem; line-height: 1.55; color: #1f2937; margin: 0 0 0.6rem 0; }
+.wcard .wformula {
+  font-size: 1.08rem; color: var(--text-dark);
+  background: var(--bg-gray); border-radius: 4px; padding: 0.4rem 0.6rem;
+}
+
+/* ---- badges -------------------------------------------------------------- */
+.badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.1rem 0 1.5rem 0; }
+.badge {
+  font-family: var(--cm); font-size: 0.96rem;
+  color: var(--text-dark); background: var(--bg-gray);
+  border: 1px solid var(--border-light); border-radius: 999px; padding: 0.28rem 0.7rem;
+}
+.badge::before { content: "✓ "; color: var(--tailrl); font-weight: 700; }
+
+/* ---- results ------------------------------------------------------------- */
+.eyebrow {
+  display: block; font-family: var(--cm); font-size: 0.96rem;
+  font-weight: 600; color: var(--tailrl); margin-bottom: 0.3rem;
+}
+.result-card h4 { margin-top: 0; }
+.result-card > p { font-size: 1.164rem; }
+.result-note { font-size: 1.08rem; color: var(--text-muted); }
+.takeaway-line {
+  border-left: 3px solid var(--tailrl); padding-left: 0.9rem; margin-top: 1.1rem;
+  font-size: 1.164rem; color: var(--text-dark);
+}
+.inset-figure { max-width: 330px; margin-left: auto; margin-right: auto; }
+@media (max-width: 640px) { .inset-figure { max-width: 100%; } }
+
+/* A figure the prose runs around. Unlike the explainer sections, the copy here
+   is taller than the figure, so this is a real float: the text sets beside it
+   and then continues underneath. Declared after .inset-figure so the explicit
+   width and margins win over its auto-centring. */
+.wrap-right {
+  float: right;
+  /* 49.22% of the card's measure is 441px, the width the two explainer
+     figures render at, so all three read as the same size */
+  width: 49.22%;
+  margin: 0.35rem 0 1rem 1.8rem;
+}
+/* Prose and figure centred on one horizontal axis, as the maze pair is. The
+   wrapper puts the prose out of reach of `.result-card > p`, so the size that
+   rule resolves to is restated here. */
+.float-block { display: flex; align-items: center; gap: 2rem; }
+.float-block .wrap-right { float: none; order: 2; flex: 0 0 49.22%; margin: 0; }
+.float-block .float-prose { flex: 1 1 0; min-width: 0; }
+.float-block .float-prose p { font-size: 1.2rem; line-height: 1.7; }
+.float-block .float-prose p:last-child { margin-bottom: 0; }
+@media (max-width: 768px) {
+  .float-block { flex-direction: column; align-items: stretch; gap: 1rem; }
+  .float-block .wrap-right { flex: none; width: 100%; }
+}
+@media (max-width: 640px) {
+  .wrap-right { float: none; width: 100%; margin: 0 0 1rem 0; }
+}
+
+/* ---- disclosures --------------------------------------------------------- */
+details.deep {
+  border: 1px solid var(--border-light); border-radius: 6px;
+  background: var(--bg-gray); margin: 1.5rem 0; padding: 0;
+}
+details.deep > summary {
+  cursor: pointer; padding: 0.7rem 1rem; list-style: none;
+  font-family: var(--cm); font-size: 1.08rem; color: var(--text-dark);
+}
+details.deep > summary::-webkit-details-marker { display: none; }
+details.deep > summary::before { content: "▸ "; color: var(--tailrl); font-weight: 700; }
+details.deep[open] > summary::before { content: "▾ "; }
+details.deep > summary:hover { color: var(--tailrl); }
+details.deep > summary:focus-visible { outline: 2px solid var(--tailrl); outline-offset: -2px; }
+details.deep .deep-body { padding: 0 1rem 1rem 1rem; border-top: 1px solid var(--border-light); }
+details.deep .deep-body p { font-size: 1.128rem; }
+
+/* ---- closing band -------------------------------------------------------- */
+.closing { background: var(--bg-gray); border-top: 1px solid var(--border-light); text-align: center; }
+.closing .closing-line {
+  font-family: var(--cm); font-size: 1.62rem; color: var(--text-dark);
+  margin-bottom: 1.2rem;
+}
+.closing .btn-row { justify-content: center; }
+@media (max-width: 480px) { .closing .closing-line { font-size: 1.32rem; } }
+
+/* ---- widget reset control ------------------------------------------------ */
+.explorer .reset {
+  margin-left: auto; font-size: 0.96rem; color: var(--text-muted);
+  border-color: var(--border-light);
+}
+.explorer .reset:hover { color: var(--tailrl); border-color: var(--tailrl); }
+
+/* ---- copy-to-clipboard feedback ------------------------------------------ */
+.copy-ok { color: var(--rloo); font-size: 1.02rem; margin-left: 0.5rem; }
+
+/* ---- presentation mode (opt-in only) ------------------------------------- */
+.sj-toggle {
+  position: fixed; right: 16px; bottom: 16px; z-index: 60;
+  font-family: var(--cm); font-size: 0.9rem;
+  padding: 0.35rem 0.75rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-light); background: rgba(255, 255, 255, 0.92);
+  color: var(--text-muted); backdrop-filter: blur(4px);
+}
+.sj-toggle:hover { border-color: #1f2937; color: var(--text-dark); }
+.sj-toggle:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
+body.sj-on .sj-toggle { border-color: var(--tailrl); color: var(--tailrl); }
+body:not(.sj-on) .sj-card, body:not(.sj-on) .sj-card-inner { display: contents; }
+body.sj-on .sj-card { height: 100vh; position: relative; overflow: hidden; }
+body.sj-on .sj-card-inner {
+  position: absolute; top: 50%; left: 50%;
+  width: 100%; max-width: 960px;
+  --sj-scale: 1; --sj-dy: 26px;
+  transform: translate(-50%, calc(-50% + var(--sj-dy))) scale(var(--sj-scale));
+  opacity: 0.28;
+  transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+body.sj-on .sj-card.is-active .sj-card-inner { --sj-dy: 0px; opacity: 1; }
+body.sj-on .pagenav { display: none; }
+/* Cards are 100vh and centre their own content, so the section chrome around
+   them only opens seams between consecutive cards. Collapse it while
+   presentation mode is on, and restore it on the way out. */
+body.sj-on section.section,
+body.sj-on section.hero,
+body.sj-on .hero .hero-body,
+body.sj-on footer.footer { padding-top: 0; padding-bottom: 0; }
+/* Setup tables are reference material, not slide content. Left in, a collapsed
+   disclosure is tall enough to be packed but shows nothing, so it lands on a
+   card of its own that reads as an empty slide. `sj-on` is set before the
+   packer runs, and the packer skips display:none blocks, so this keeps them
+   out of the cards rather than merely hiding them inside one. */
+body.sj-on details.deep { display: none; }
+/* the title slide is a card like any other once presentation mode is on */
+body.sj-on .hero { min-height: 0; display: block; }
+@media print { .sj-toggle { display: none !important; } }
+@media (max-width: 768px) { .sj-toggle { display: none !important; } }
+
+/* ---- reduced motion ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  html { scroll-behavior: auto !important; }
+}
+
+/* ---- hero, MaxRL template ------------------------------------------------ */
+.hero { background: #f3f4f6; border-bottom: 1px solid var(--border-light); }
+.hero .hero-body { padding-top: 2.75rem; padding-bottom: 2rem; }
+.hero .publication-title {
+  color: var(--tailrl); font-weight: 400;
+  font-family: var(--cm); margin-bottom: 0.9rem;
+}
+.hero .publication-authors a { color: #1f2937 !important; }
+.hero .publication-authors a:hover { color: var(--tailrl) !important; text-decoration: underline; }
+@media (max-width: 768px) { .hero .hero-body { padding-top: 1.75rem; padding-bottom: 1.5rem; } }
+
+/* justified body copy should not open rivers around inline math */
+.content.has-text-justified { text-justify: inter-word; }
+@media (max-width: 768px) { .content.has-text-justified { text-align: left !important; } }
+
+
+/* The title slide is a third of the screen. min-height, not height: the block
+   still grows if the author list wraps onto more lines on a narrow viewport. */
+.hero { min-height: 33.333vh; display: flex; flex-direction: column; justify-content: center; }
+.hero .hero-body { display: flex; align-items: center; width: 100%; padding-top: 1.75rem; padding-bottom: 1.75rem; }
+.hero .hero-body > .container { width: 100%; }
+@supports (min-height: 33.333svh) { .hero { min-height: 33.333svh; } }
+
+/* ---- author block --------------------------------------------------------
+   Line breaks follow the paper's \author block exactly; each .author-line is
+   one line there. */
+.publication-authors { margin-top: 0.15rem; }
+.author-line {
+  font-family: var(--cm); font-size: 1.2rem; line-height: 1.75;
+  color: #1f2937;
+}
+.author-line a { color: #1f2937; }
+.author-line a:hover { color: var(--tailrl); text-decoration: underline; }
+.author-line sup { font-size: 0.7em; color: var(--text-muted); }
+.publication-affiliations {
+  margin-top: 0.7rem; font-size: 1.02rem; line-height: 1.6; color: var(--text-muted);
+}
+.publication-affiliations sup { color: var(--text-muted); }
+.publication-contact { margin-top: 0.45rem; font-size: 0.984rem; color: var(--text-muted); }
+.publication-contact code {
+  background: transparent; color: var(--text-muted); padding: 0;
+  font-size: 0.95em;
+}
+@media (max-width: 768px) {
+  .author-line { font-size: 1.056rem; line-height: 1.65; }
+  .publication-affiliations { font-size: 0.912rem; }
+  .publication-contact { font-size: 0.888rem; }
+}
+
+/* ---- advantage explorer: the reward strip sits above the two panels ------ */
+#tailrl-explorer #ex-svg-rewards { margin-bottom: 0.25rem; }
+
+/* ---- advantage explorer: centred control bar ----------------------------
+   Requested for this widget only; the same-mean widget keeps its left-aligned
+   head. `.reset` normally floats right on `margin-left: auto`, which would
+   fight the centring, so it joins the row here. */
+#tailrl-explorer .explorer-head { justify-content: center; }
+#tailrl-explorer .explorer-head .reset { margin-left: 0; }
+#tailrl-explorer .hint { text-align: center; }
+
+/* ---- LaTeX typography inside the widgets --------------------------------
+   The KaTeX webfonts are already loaded for the page's display math, so the
+   widget labels use the same faces: KaTeX_Math italic for variables, and
+   KaTeX_Main upright for numbers and words. Same glyphs as the rendered
+   equations, no sans-serif stand-ins. */
+.explorer tspan.sv-math,
+.explorer .sv-math {
+  font-family: 'KaTeX_Math', 'Latin Modern Math', Georgia, serif;
+  font-style: italic;
+}
+.explorer tspan.sv-text,
+.explorer .sv-text {
+  font-family: var(--cm);
+  font-style: normal;
+}
+/* numbers the widgets print live: upright roman, as in LaTeX */
+.explorer .readout .knum {
+  font-family: var(--cm);
+  font-variant-numeric: tabular-nums;
+}
+.explorer .readout .katex { font-size: 1em; }
+.explorer .readout .katex .mord.text { font-family: var(--cm); }
+
+/* both widget control bars centre their contents */
+#smt-widget .explorer-head { justify-content: center; }
+#smt-widget .explorer-head .reset { margin-left: 0; }
+#smt-widget .hint { text-align: center; }
+
+/* ===========================================================================
+   Type scale matched to the MaxRL project page (measured at 1440x900)
+     body   16/24    Noto Sans      title    48/54  Georgia
+     h2     32/36    Google Sans    authors  20/30  Google Sans
+     caption 14.4/21.6 Noto Sans    card p   16/27.2 Noto Sans
+   Body copy and h2 already matched; the rest is brought in line here. The
+   page-wide Noto Sans above is what fixes the captions, footer, card copy and
+   widget chrome, all of which were falling through to system-ui.
+   ========================================================================= */
+.hero .title.is-2 { font-size: 3rem; line-height: 1.125; }
+.author-line { font-size: 1.5rem; line-height: 1.5; }
+.publication-affiliations { font-size: 1.14rem; line-height: 1.55; }
+.publication-contact { font-size: 1.08rem; }
+.result-card > p { font-size: 1.2rem; line-height: 1.7; }
+.result-note { font-size: 1.14rem; }
+.takeaway-line { font-size: 1.2rem; }
+/* our links are pills rather than Bulma buttons, so they sit just under
+   MaxRL's 16px rather than at it */
+.btn { font-size: 1.2rem; }
+@media (max-width: 1024px) { .hero .title.is-2 { font-size: 2.4rem; } }
+@media (max-width: 768px) {
+  .hero .title.is-2 { font-size: 1.8rem; line-height: 1.2; }
+  .author-line { font-size: 1.2rem; line-height: 1.55; }
+  .publication-affiliations { font-size: 0.984rem; }
+  .publication-contact { font-size: 0.936rem; }
+}
+
+/* Computer Modern runs lighter and smaller on the eye than Noto Sans at the
+   same nominal size, so the running text gets a touch more size and leading. */
+body { font-family: var(--cm); }
+/* body and card copy at MaxRL's 16/27.2; the earlier bump for Computer
+   Modern is dropped in favour of matching the reference page. */
+.content p, .content li { font-size: 1.2rem; line-height: 1.7; }
+.result-card > p { font-size: 1.2rem; line-height: 1.7; }
+.hero .title.is-2 { font-weight: 700; }
+h2.title.is-3, .title.is-3.section-title { font-weight: 700; }
+code, pre, .bibtex-box code { font-family: 'JetBrains Mono', 'Fira Code', Monaco, monospace; }
+
+/* ---- explainer: notes beside a plot --------------------------------------
+   Reproduces the layout of the original LaTeX figure, whose left column held
+   the prose and whose right held the density. The text is real HTML now, so
+   it reflows, is selectable and is read by screen readers. */
+/* Prose to the left of the figure, the two sharing a horizontal line of
+   symmetry. Both blurbs are shorter than their figure, so nothing ever flowed
+   underneath it and a float bought nothing but a top-aligned ragged edge;
+   centring the pair reads as one balanced unit. The figure comes first in
+   source order and is ordered back to the right, which also puts it *below*
+   the prose once this collapses to a column on a phone.
+   45.96% is the old 70.71% cut by 35%. */
+.explain-split, .wrap-block {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+.explain-split img, .wrap-figure {
+  order: 2;
+  flex: 0 0 45.96%;
+  width: 45.96%;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+.explain-split .notes, .wrap-block .content {
+  flex: 1 1 0;
+  min-width: 0;          /* flex items floor at min-content without this */
+}
+.explain-split .notes { display: block; }
+.explain-split .notes p {
+  margin: 0; font-size: 1.2rem; line-height: 1.7; color: var(--text-dark);
+  text-align: left;
+}
+/* "tail-probability" was breaking at its hyphen across two lines, which reads
+   badly for a term being defined; keep it whole */
+.explain-split .notes strong { white-space: nowrap; }
+.wrap-figure img { width: 100%; display: block; }
+.content .wrap-prose { text-align: left; margin: 0; }
+
+/* a phone is too narrow to set anything beside anything: stack instead */
+@media (max-width: 768px) {
+  /* stays flex so `order` still holds: block layout ignores it and would
+     leave the figure stranded above the prose it illustrates */
+  .explain-split, .wrap-block {
+    flex-direction: column; align-items: stretch; gap: 1rem;
+  }
+  .explain-split img, .wrap-figure { flex: none; width: 100%; }
+}
+
+/* the reshape teaser is blank until it scrolls into view, so hold its box */
+/* Half the area, so 1/sqrt(2) = 70.71% of the measure on each side. The
+   aspect-ratio box still reserves the space before the GIF is swapped in.
+   Phones keep the full width, where it is already small enough. */
+img[data-play-in-view] {
+  aspect-ratio: 962 / 663;
+  width: 100%;
+  height: auto;
+  background: transparent;
+}
+
+/* ---- objective / gradient comparison boxes -------------------------------
+   The gradient expressions are wide for a half-width column, so each formula
+   scrolls inside its own box rather than pushing the page sideways. */
+.math-box .math-line {
+  margin: 0; text-align: center;
+  overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+}
+.math-box h4 { text-align: center; font-size: 1.2rem; }
+
+/* ---- tinted comparison boxes ---------------------------------------------
+   MaxRL's own boxes are neutral grey; the tints here follow the colour
+   language the rest of this page already uses, blue for the expected-reward
+   baseline and red for TailRL, the same pairing as the advantage explorer.
+   Kept faint: the tint should read as a label, not as a highlight. */
+.math-box.is-rl {
+  background: #e4edf8;
+  border-color: #b3c9e4;
+}
+.math-box.is-rl h4 { color: var(--grpo); }
+.math-box.is-tail {
+  background: #f9e6e2;
+  border-color: #e3b6ac;
+}
+.math-box.is-tail h4 { color: var(--tailrl); }
+
+/* a single full-width box, for a theorem rather than a two-way comparison */
+.math-comparison.one { grid-template-columns: minmax(0, 1fr); }
+.math-comparison.one .math-box { padding: 1.1rem 1.4rem; }
+
+/* Instructions under the widgets are directions to the reader, not asides:
+   full-strength ink, bold, centred. */
+.explorer .hint {
+  color: var(--text-dark);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* "Drag inside either histogram..." and friends: these tell the reader what to
+   do, so they are centred, bold and full-strength, not a grey aside. */
+.content .do-this {
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+/* ---- heading sizes ------------------------------------------------------
+   Pinned in px, matching the MaxRL page: h2 32/36, h4 24. */
+h2.title.is-3, .title.is-3.section-title { font-size: 32px; line-height: 36px; }
+h2.section-title, h3.section-title, .title.section-title { font-size: 32px; }
+h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
+@media (max-width: 768px) {
+  h2.title.is-3, .title.is-3.section-title { font-size: 22px; line-height: 26px; }
+}
+@media (max-width: 480px) {
+  h2.title.is-3, .title.is-3.section-title { font-size: 20px; line-height: 24px; }
+}
+
+/* ---- 2x type on small screens -------------------------------------------
+   At 2x the mobile jump menu and the BibTeX block are wider than a phone, so
+   the menu is capped and the citation scrolls inside its own box. */
+@media (max-width: 768px) {
+  .pagenav .jump { max-width: 55vw; }
+  .pagenav .inner { gap: 0.5rem; }
+}
+.bibtex-box { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.bibtex-box pre { overflow-x: auto; }
+
+/* The gradient identities read as one line each; if a narrow screen cannot
+   hold that, .math-line already scrolls rather than wrapping mid-equation. */
+.grad-row .math-line { white-space: nowrap; }
+
+/* The Best-of-k box carries two equations and no heading, so it sits tight and
+   only as wide as it needs: the widest equation is 332px at the
+   shared 0.8em size, so 1.5x that is 500px rather than the full 960px. */
+.math-box.is-compact {
+  /* width, not max-width: the auto margins below turn off the grid item's
+     stretch, so a max-width alone leaves it shrink-to-fit at the content's
+     own 462px rather than the 620px target. */
+  padding: 1.1rem 1.4rem;
+  width: 500px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.math-box.is-compact .math-line { white-space: nowrap; }
+@media (max-width: 700px) { .math-box.is-compact { max-width: 100%; } }
+
+/* The rollout slider and the presets each get their own centred row. Without
+   flex-basis 100% they share a line and wrap unevenly as the labels grow. */
+.explorer-head .ctl-line {
+  flex: 0 0 100%;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 0.5rem 1.25rem;
+}
+.explorer-head .ctl-line .reset { margin-left: 0; }
+
+
+/* Bulma's default link blue is 4.35:1 on the grey section band, under AA.
+   This one clears it on both bands (5.9:1 grey, 6.2:1 white). */
+.content a, .result-card a, footer .content a { color: #275fb5; }
+.content a:hover, .result-card a:hover { color: var(--tailrl); }
+
+/* The comparison equations run 20% smaller than the body, which also lets the
+   TailRL gradient keep its E[(integral) S] form on one line. The main equation
+   in each box reserves the same height so the two sit level across a row. */
+#tailrl .math-line,
+#harmonic .math-line { font-size: 0.8em; }
+#tailrl .math-comparison .math-box {
+  display: flex; flex-direction: column;
+}
+#tailrl .math-comparison .math-line {
+  display: flex; align-items: center; justify-content: center;
+  min-height: var(--eq-h, auto);
+}
+/* Each row reserves a height tall enough for its tallest equation, so the two
+   boxes centre their glyphs on the same line. Aligning by the .katex box will
+   not do it: a displaystyle integral overflows its own 22px inline strut. */
+#tailrl .obj-row  .math-line { --eq-h: 3.2em; }
+#tailrl .grad-row .math-line { --eq-h: 4.2em; }
+#tailrl .math-comparison .math-note { margin-top: auto; }
+
+/* The research question above each experiment sits halfway between the section
+   title (32px) and the experiment name (19.2px), so 25.6px. */
+.result-card .eyebrow {
+  font-size: 1.2rem;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+/* a card can pose more than one question; each opens a block inside it and
+   needs air above. The exception is a question sitting straight under the
+   experiment name, where the pair should read as one heading. */
+.result-card .eyebrow { margin-top: 2rem; }
+.result-card h4 + .eyebrow { margin-top: 0; }
+@media (max-width: 768px) { .result-card .eyebrow { font-size: 1.08rem; } }
+
+/* Pseudocode, set as a numbered list rather than a code block: the steps are
+   maths, so they need KaTeX rather than a monospace face. The nested list is a
+   loop body and continues the outer numbering visually through indentation. */
+.algo-steps { list-style: none; margin: 0; padding: 0; counter-reset: algo; }
+/* no counter-reset here: a loop body continues the outer numbering, as in the
+   paper's algorithm block, rather than restarting at 1 */
+.algo-steps ol { list-style: none; margin: 0; padding: 0; }
+.algo-steps li {
+  counter-increment: algo;
+  position: relative;
+  padding: 0.18rem 0 0.18rem 2.6rem;
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+.algo-steps > li::before,
+.algo-steps ol > li::before {
+  content: counter(algo);
+  position: absolute; left: 0; width: 1.9rem;
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.algo-steps ol { margin-left: 1.4rem; }
+.algo-steps li.algo-io { counter-increment: none; }
+.algo-steps li.algo-io::before { content: ""; }
+.algo-kw { font-variant: small-caps; font-weight: 700; letter-spacing: 0.02em; }
+
+/* Figure and its prose side by side, centred on one horizontal axis. The prose
+   is shorter than the figure, so nothing would flow underneath a float and
+   centring the pair reads as one unit. The figure is first in source order and
+   ordered back to the right, which also puts it below the prose on a phone. */
+.pair-block { display: flex; align-items: center; gap: 2rem; }
+.pair-figure { order: 2; flex: 0 0 470px; max-width: 52%; margin: 0; padding: 0; }
+.pair-figure img { width: 100%; height: auto; }
+.pair-block > p {
+  flex: 1 1 0; min-width: 0;   /* flex items floor at min-content without this */
+  /* .result-card > p no longer reaches it; match what that rule resolves to */
+  font-size: 1.2rem; line-height: 1.7;
+  margin: 0;
+}
+@media (max-width: 768px) {
+  .pair-block { flex-direction: column; align-items: stretch; gap: 1rem; }
+  .pair-figure { flex: none; max-width: 100%; }
+}
+
+/* Hyperparameters read as a table, not as prose: two columns, the name in the
+   left rail. Scrolls inside itself on a narrow screen rather than widening
+   the page. */
+.deep-body table.setup-table {
+  width: 100%; border-collapse: collapse; margin: 0.25rem 0 0 0;
+  font-size: 1.02rem; background: transparent;
+}
+.setup-table th, .setup-table td {
+  text-align: left; vertical-align: top; padding: 0.4rem 0.9rem 0.4rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.setup-table tr:last-child th, .setup-table tr:last-child td { border-bottom: none; }
+.setup-table th { font-weight: 600; color: var(--text-dark); white-space: nowrap; width: 1%; }
+.setup-table td { color: var(--text-dark); }
+@media (max-width: 640px) {
+  .setup-table th, .setup-table td { padding: 0.35rem 0.6rem 0.35rem 0; font-size: 0.96rem; }
+  .setup-table th { white-space: normal; }
+}
+
+/* The pointer glyph for the one-off "this is interactive" gesture. Fixed, so
+   it tracks the widget's viewport position, and inert so it can never swallow
+   a real click. */
+.demo-cursor {
+  position: fixed; left: 0; top: 0; z-index: 60;
+  pointer-events: none; opacity: 0;
+  transition: opacity 260ms ease;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+.demo-cursor.is-in  { opacity: 1; }
+.demo-cursor.is-out { opacity: 0; }
+.demo-cursor::after {
+  content: ''; position: absolute; left: -7px; top: -7px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(192, 57, 43, 0.28);
+  transform: scale(0); transition: transform 160ms ease;
+}
+.demo-cursor.is-down::after { transform: scale(1); }
+@media (prefers-reduced-motion: reduce) { .demo-cursor { display: none; } }

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TailRL Advantage Diff</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+
+    <style>
+        body { background: #f9fafb; padding: 0px 20px 24px 20px; margin: 0; }
+
+        .code-window {
+            background: #1e1e1e;
+            border-radius: 12px;
+            box-shadow: none;
+            overflow: hidden;
+            max-width: 900px;
+            margin: 0 auto;
+            border: 1px solid #444;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        .window-header {
+            background: #1f1f1f;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .red-dot { background-color: #ff5f56; } .yellow-dot { background-color: #ffbd2e; } .green-dot { background-color: #27c93f; }
+        .title { color: #888; margin-left: 10px; font-size: 13px; }
+
+        pre[class*="language-"] {
+            margin: 0 !important; border: none !important; background: transparent !important; padding: 20px !important;
+            line-height: 1.6;
+        }
+
+        /* Pin an explicit, font-independent line-height so the JS diff-highlight
+           math lines up identically across platforms/fonts. */
+        pre.line-numbers,
+        pre.line-numbers > code,
+        pre.line-numbers .line-numbers-rows,
+        pre.line-numbers .line-numbers-rows > span {
+            line-height: 1.6 !important;
+        }
+        pre.line-numbers { padding: 20px !important; position: relative; }
+
+        .line-numbers .line-numbers-rows {
+            border-right: 1.5px solid #6c6c6c;
+            padding-right: 6px;
+        }
+
+        pre[class*="language-"] { position: relative; }
+
+        .line-highlight-bg {
+            position: absolute;
+            left: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .line-highlight-bg.delete {
+            background: rgba(244, 67, 54, 0.15) !important;
+            border-left: 4px solid #f44336;
+        }
+        .line-highlight-bg.add {
+            background: rgba(76, 175, 80, 0.15) !important;
+            border-left: 4px solid #4caf50;
+        }
+
+        code[class*="language-"] {
+            position: relative;
+            z-index: 1;
+        }
+
+        .line-numbers-rows > span.line-delete::after {
+            position: absolute; right: 5px; color: #ff6666; font-weight: bold;
+        }
+        .line-numbers-rows > span.line-add::after {
+            position: absolute; right: 5px; color: #66ff66; font-weight: bold;
+        }
+        .line-numbers-rows > span { position: relative; }
+
+        /* ---- VS Code Dark+ palette -------------------------------------
+           Prism's Tomorrow theme ships a different set of hues, so the tokens
+           are remapped to the colours the editor actually uses. Prism gives
+           every keyword one class, so a post-pass splits declarations (blue)
+           from control flow (purple), and tags the bare identifiers Prism
+           leaves as plain text, which is where most of the editor's blue
+           comes from. */
+        pre[class*="language-"], code[class*="language-"] { color: #d4d4d4; }
+        .token.comment, .token.prolog, .token.doctype, .token.cdata { color: #6a9955; font-style: normal; }
+        .token.string, .token.triple-quoted-string, .token.char { color: #ce9178; }
+        .token.number { color: #b5cea8; }
+        .token.boolean { color: #569cd6; }
+        .token.keyword { color: #c586c0; }
+        .token.keyword.kw-decl { color: #569cd6; }
+        .token.builtin, .token.class-name { color: #4ec9b0; }
+        .token.function, .token.decorator, .token.annotation { color: #dcdcaa; }
+        .token.operator, .token.punctuation { color: #d4d4d4; background: none; }
+        .tok-id { color: #9cdcfe; }
+        .tok-call { color: #dcdcaa; }
+        .tok-attr { color: #9cdcfe; }
+        /* one block per source line; on desktop this is purely structural */
+        .cl { display: block; }
+
+        /* The snippet needs ~900px to sit on one line each, so anything narrower
+           would otherwise ask the reader to swipe sideways through code. Below
+           that the lines soft-wrap instead, with a hanging indent so a
+           continuation is never mistaken for a new statement.
+
+           The gutter goes with it: Prism's line numbers are one row per logical
+           line and desynchronise the moment anything wraps. The per-line blocks
+           carry the diff tint directly here, so the measured overlay -- which
+           assumes no wrapping -- is switched off. */
+        @media (max-width: 900px) {
+            pre.line-numbers { overflow-x: hidden; padding-left: 20px !important; }
+            .line-numbers .line-numbers-rows { display: none !important; }
+            .line-highlight-bg { display: none !important; }
+            pre.line-numbers > code {
+                white-space: pre-wrap !important;
+                overflow-wrap: break-word;
+                word-break: break-word;
+            }
+            .cl {
+                text-indent: -2.2em;
+                padding-left: calc(2.2em + 16px);
+                padding-right: 20px;
+                margin: 0 -20px;
+                border-left: 4px solid transparent;
+            }
+            .cl-add { background: rgba(76, 175, 80, 0.15); border-left-color: #4caf50; }
+            .cl-delete { background: rgba(244, 67, 54, 0.15); border-left-color: #f44336; }
+        }
+
+        /* On a phone, also shrink the chrome and the face to buy columns. */
+        @media (max-width: 600px) {
+            body { padding: 0 8px 16px 8px; }
+            .code-window { font-size: 11px; border-radius: 8px; }
+            .header { padding: 7px 10px; }
+            .title { font-size: 11px; margin-left: 6px; }
+            .dot { width: 9px; height: 9px; margin-right: 6px; }
+            pre[class*="language-"], pre.line-numbers { padding: 10px 12px !important; }
+            pre.line-numbers { padding-left: 12px !important; }
+            pre.line-numbers > code { font-size: 11px; }
+            .cl {
+                padding-left: calc(2.2em + 8px);
+                padding-right: 12px;
+                margin: 0 -12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="code-window">
+        <div class="window-header">
+            <span class="dot red-dot"></span>
+            <span class="dot yellow-dot"></span>
+            <span class="dot green-dot"></span>
+            <span class="title">verl/trainer/ppo/core_algos.py</span>
+        </div>
+
+        <pre class="line-numbers">
+<code class="language-python">def compute_outcome_advantage(
+    token_level_rewards: torch.Tensor, response_mask: torch.Tensor,
+    index: np.ndarray, epsilon: float = 1e-6,
+):
+    """Maps the N rewards of each prompt group to N advantages."""
+    scores = token_level_rewards.sum(dim=-1)
+    id2score = group_by_prompt(scores, index)   # unchanged verl grouping: {prompt: (N,)}
+    id2adv = {}
+
+    with torch.no_grad():
+        for idx, r in id2score.items():
+            N = r.numel()
+
+            # GRPO: standardize within the group
+<span class="line-delete">            id2adv[idx] = (r - r.mean()) / (r.std() + epsilon)</span>
+
+            # TailRL: w_(i) = sum_{k&lt;=i} (r_(k) - r_(k-1)) / (N - k + 1)
+<span class="line-add">            rs, perm = torch.sort(r)                          # ascending rewards</span>
+<span class="line-add">            w = (rs.diff(prepend=r.new_zeros(1)) / torch.arange(N, 0, -1).to(r)).cumsum(0)</span>
+<span class="line-add">            id2adv[idx] = (w - w.mean())[perm.argsort()]      # mean-center, unsort</span>
+
+    adv = scatter_to_batch(id2adv, index) * response_mask   # unchanged verl scatter
+    return adv, adv
+</code>
+        </pre>
+    </div>
+
+    <script>
+        // Save original HTML before Prism processes it
+        (function() {
+            const codeElement = document.querySelector('code.language-python');
+            if (codeElement) {
+                window.originalCodeHTML = codeElement.innerHTML;
+            }
+        })();
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+
+    <script>
+        // Create full-line highlights and mark line numbers after Prism renders,
+        // then report the document height to the parent so the iframe can size itself.
+        (function() {
+            var lastReported = -1;
+            function reportHeight() {
+                try {
+                    // Measure the content box, not documentElement.scrollHeight: inside an iframe
+                    // the latter is never smaller than the frame itself and would feed back on resize.
+                    var cw = document.querySelector('.code-window');
+                    var h = Math.ceil(cw.getBoundingClientRect().bottom + window.scrollY + 24);
+                    if (Math.abs(h - lastReported) < 2) return;
+                    lastReported = h;
+                    window.parent.postMessage({ tailrlCodeHeight: h }, '*');
+                } catch (e) {}
+            }
+
+            /* The bands are absolutely positioned, so left:0/right:0 would size
+               them to the padding box and they would stop at the fold the moment
+               a long line is scrolled into view. Width comes from scrollWidth
+               instead -- re-read on load and resize, since the webfont lands
+               after first paint and shifts the measurement. */
+            /* Prism leaves the code as one flat run of text, so a wrapped line
+               cannot be indented or tinted on its own. Split it into one block
+               per line -- safe here because no highlight token spans a newline
+               (asserted in the mobilecode suite) -- and hoist the diff class
+               onto the wrapper so the band is the line itself. */
+            /* Prism assigns one class to every keyword; the editor does not.
+               Declarations are blue, control flow purple. */
+            var KW_DECL = ['def','class','lambda','import','from','as','global',
+                           'nonlocal','None','True','False','self'];
+            function splitKeywords() {
+                [].forEach.call(document.querySelectorAll('code .token.keyword'), function (t) {
+                    if (KW_DECL.indexOf(t.textContent.trim()) !== -1) t.classList.add('kw-decl');
+                });
+            }
+
+            /* Bare identifiers are left as plain text by Prism, so they would
+               render in the default grey. Wrap them: one that is followed by an
+               open paren is a call and takes the function colour, the rest take
+               the variable colour. Only text nodes outside a token are touched,
+               so nothing inside a string or comment is affected. */
+            var ID = /[A-Za-z_][A-Za-z0-9_]*/g;
+            function colorIdentifiers() {
+                var code = document.querySelector('code.language-python');
+                if (!code || code.getAttribute('data-ids')) return;
+                var walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT, null),
+                    nodes = [], n;
+                while ((n = walker.nextNode())) {
+                    if (!n.parentNode.closest('.token')) nodes.push(n);
+                }
+                nodes.forEach(function (node) {
+                    var text = node.nodeValue;
+                    if (!ID.test(text)) { ID.lastIndex = 0; return; }
+                    ID.lastIndex = 0;
+                    var frag = document.createDocumentFragment(), last = 0, m;
+                    while ((m = ID.exec(text))) {
+                        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+                        var sp = document.createElement('span');
+                        sp.className = 'tok-id';
+                        sp.textContent = m[0];
+                        frag.appendChild(sp);
+                        last = m.index + m[0].length;
+                    }
+                    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+                    node.parentNode.replaceChild(frag, node);
+                });
+                /* An identifier's open paren is a punctuation token in a
+                   different node, so the call test cannot be done on the text
+                   node alone; walk forward in document order instead. */
+                [].forEach.call(code.querySelectorAll('.tok-id'), function (el) {
+                    if (nextChar(el, code) === '(') el.className = 'tok-call';
+                });
+                code.setAttribute('data-ids', '1');
+            }
+
+            function nextChar(el, root) {
+                var n = el;
+                while (n && n !== root) {
+                    var sib = n.nextSibling;
+                    while (sib) {
+                        var t = sib.textContent;
+                        for (var i = 0; i < t.length; i++) {
+                            if (!/\s/.test(t.charAt(i))) return t.charAt(i);
+                        }
+                        sib = sib.nextSibling;
+                    }
+                    n = n.parentNode;
+                }
+                return '';
+            }
+
+            function wrapLines() {
+                var code = document.querySelector('code.language-python');
+                if (!code || code.getAttribute('data-lines')) return;
+                /* Classify by line index against the pre-Prism source, the way
+                   markDiffLines does. Reading the classes back out of the
+                   highlighted markup does not work: Prism rebuilds the tree and
+                   the diff wrapper no longer opens where the line does. */
+                var src = (window.originalCodeHTML || '').split('\n');
+                var out = code.innerHTML.split('\n');
+                if (out.length && !out[out.length - 1].trim()) out.pop();
+                out = out.map(function (l, i) {
+                    var o = src[i] || '', cls = 'cl';
+                    if (o.indexOf('line-delete') !== -1) cls += ' cl-delete';
+                    else if (o.indexOf('line-add') !== -1) cls += ' cl-add';
+                    // an empty block has no height; a zero-width space keeps the row
+                    return '<span class="' + cls + '">' + (l.length ? l : '\u200b') + '</span>';
+                });
+                code.innerHTML = out.join('');
+                code.setAttribute('data-lines', out.length);
+            }
+
+            function sizeBands() {
+                var pre = document.querySelector('pre.line-numbers');
+                if (!pre) return;
+                var bands = pre.querySelectorAll('.line-highlight-bg');
+                // collapse first: a band is in flow for scrollWidth, so measuring
+                // around them would ratchet the width up on every resync
+                [].forEach.call(bands, function (bg) { bg.style.width = '0'; });
+                var w = pre.scrollWidth;
+                [].forEach.call(bands, function (bg) { bg.style.width = w + 'px'; });
+            }
+
+            function markDiffLines() {
+                const preElement = document.querySelector('pre.line-numbers');
+                const codeElement = document.querySelector('code.language-python');
+                if (!preElement || !codeElement) return;
+
+                const lineNumberSpans = preElement.querySelectorAll('.line-numbers-rows > span');
+                if (lineNumberSpans.length === 0) return;
+
+                const originalHTML = window.originalCodeHTML || codeElement.innerHTML;
+                const htmlLines = originalHTML.split('\n');
+                const preRect = preElement.getBoundingClientRect();
+
+                htmlLines.forEach(function(htmlLine, index) {
+                    const isDelete = htmlLine.includes('line-delete');
+                    const isAdd = htmlLine.includes('line-add');
+                    if (!isDelete && !isAdd) return;
+
+                    const span = lineNumberSpans[index];
+                    if (!span) return;
+                    span.classList.add(isDelete ? 'line-delete' : 'line-add');
+
+                    const spanRect = span.getBoundingClientRect();
+                    const bg = document.createElement('div');
+                    bg.className = 'line-highlight-bg ' + (isDelete ? 'delete' : 'add');
+                    bg.style.top = (spanRect.top - preRect.top) + 'px';
+                    bg.style.height = spanRect.height + 'px';
+                    preElement.appendChild(bg);
+                });
+                sizeBands();
+                reportHeight();
+            }
+
+            function runWhenReady() {
+                if (typeof Prism !== 'undefined' && document.querySelector('.line-numbers-rows')) {
+                    setTimeout(function () {
+                        splitKeywords(); colorIdentifiers(); wrapLines(); markDiffLines();
+                    }, 500);
+                } else {
+                    setTimeout(runWhenReady, 100);
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', runWhenReady);
+            } else {
+                runWhenReady();
+            }
+            function resync() { sizeBands(); reportHeight(); }
+            window.addEventListener('load', resync);
+            window.addEventListener('resize', resync);
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(resync);
+        })();
+    </script>
+</body>
+</html>
