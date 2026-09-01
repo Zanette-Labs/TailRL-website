@@ -1053,3 +1053,9 @@ h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
   .btn-row { margin-top: 0.4rem; }
   .btn { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
 }
+
+/* The teaser's lead-in competes with the figure it introduces for the opening
+   screen, so it is set a little smaller on a phone. */
+@media (max-width: 768px) {
+  #teaser .content p { font-size: 1.04rem; line-height: 1.55; }
+}
