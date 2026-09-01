@@ -42,7 +42,7 @@
 body { color: var(--text-dark); font-family: var(--cm); font-size: 1.2rem; }
 
 .hero { background: #f3f4f6; border-bottom: 1px solid #e5e7eb; overflow: visible !important; }
-.hero .hero-body { padding-top: 2rem; padding-bottom: 0.8rem; overflow: visible !important; }
+.hero .hero-body { padding-top: 1.1rem; padding-bottom: 0.7rem; overflow: visible !important; }
 .hero * { overflow: visible !important; }
 .hero .container, .hero .columns, .hero .column { overflow: visible !important; max-height: none !important; }
 .hero .title.is-1 { color: var(--tailrl); font-weight: 400; font-family: var(--cm); }
@@ -406,7 +406,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--tailrl); outlin
 
 
 /* ---- buttons ------------------------------------------------------------- */
-.btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.2rem; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; }
 .btn-row.is-centered { justify-content: center; }
 .btn {
   display: inline-flex; align-items: center; gap: 0.45em;
@@ -700,9 +700,11 @@ body.sj-on .hero { min-height: 0; display: block; }
    widget chrome, all of which were falling through to system-ui.
    ========================================================================= */
 .hero .title.is-2 { font-size: 3rem; line-height: 1.125; }
-.author-line { font-size: 1.5rem; line-height: 1.5; }
-.publication-affiliations { font-size: 1.14rem; line-height: 1.55; }
-.publication-contact { font-size: 1.08rem; }
+/* The byline is reference information, not the pitch. Tightening it lifts the
+   first figure into the opening screen, which is what a reader arrives for. */
+.author-line { font-size: 1.16rem; line-height: 1.4; }
+.publication-affiliations { font-size: 0.94rem; line-height: 1.45; margin-top: 0.35rem; }
+.publication-contact { font-size: 0.94rem; margin-top: 0.3rem; }
 .result-card > p { font-size: 1.2rem; line-height: 1.7; }
 .result-note { font-size: 1.14rem; }
 .takeaway-line { font-size: 1.2rem; }
@@ -1008,3 +1010,46 @@ h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
 }
 .demo-cursor.is-down::after { transform: scale(1); }
 @media (prefers-reduced-motion: reduce) { .demo-cursor { display: none; } }
+
+/* On a phone the byline filled the entire opening screen, so the reader's
+   first impression was a list of names. Cap the masthead at roughly half the
+   viewport; everything here is reference information that can be small. */
+@media (max-width: 768px) {
+  .hero .hero-body { padding-top: 0.7rem; padding-bottom: 0.5rem; }
+  .hero .title.is-1 { font-size: 1.42rem !important; line-height: 1.25; margin-bottom: 0.45rem; }
+  .publication-authors { margin-top: 0.1rem; }
+  .author-line { font-size: 0.84rem; line-height: 1.32; }
+  .author-line sup { font-size: 0.62em; }
+  .publication-affiliations { font-size: 0.72rem; line-height: 1.28; margin-top: 0.25rem; }
+  .publication-contact { font-size: 0.74rem; margin-top: 0.2rem; }
+  .publication-contact code { font-size: 0.7rem; }
+  .btn-row { margin-top: 0.5rem; gap: 0.3rem; }
+  .btn { font-size: 0.82rem; padding: 0.28rem 0.62rem; }
+  .btn-note { font-size: 0.72em; }
+}
+
+/* A narrower phone wraps the author lines more, and a shorter one has less
+   height to give, so the two compound; trim again below 400px. */
+@media (max-width: 400px) {
+  .hero .hero-body { padding-top: 0.55rem; padding-bottom: 0.4rem; }
+  .hero .title.is-1 { font-size: 1.26rem !important; margin-bottom: 0.35rem; }
+  .author-line { font-size: 0.76rem; line-height: 1.28; }
+  .publication-affiliations { font-size: 0.66rem; line-height: 1.25; }
+  .publication-contact { font-size: 0.68rem; }
+  .publication-contact code { font-size: 0.64rem; }
+  .btn { font-size: 0.76rem; padding: 0.24rem 0.55rem; }
+}
+
+/* A short viewport is the binding constraint rather than a narrow one: an old
+   phone, or any phone held sideways. Height is what the masthead is competing
+   for, so key this off height directly. */
+@media (max-height: 640px) and (max-width: 768px) {
+  .hero .hero-body { padding-top: 0.45rem; padding-bottom: 0.35rem; }
+  .hero .title.is-1 { font-size: 1.12rem !important; margin-bottom: 0.3rem; }
+  .author-line { font-size: 0.68rem; line-height: 1.24; }
+  .publication-affiliations { font-size: 0.6rem; line-height: 1.22; margin-top: 0.2rem; }
+  .publication-contact { font-size: 0.62rem; margin-top: 0.15rem; }
+  .publication-contact code { font-size: 0.58rem; }
+  .btn-row { margin-top: 0.4rem; }
+  .btn { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
+}
