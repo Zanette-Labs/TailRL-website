@@ -32,7 +32,9 @@
     wheelThreshold:  28,   // accumulated |deltaY| before a slide advances
     quietMs:        150,   // trackpad momentum must be quiet this long to unlock
     pad:             40,   // px of breathing room above and below a slide
-    minScale:      0.5,    // never shrink a slide past this to make it fit
+    // a slide is scaled down as far as it must to fit; this only guards
+    // against a degenerate window, it is not a legibility floor
+    minScale:      0.3,
     // index.css switches to the phone layout at max-width: 768px, which also
     // hides the toggle; the mode must never be on where its exit is hidden
     minWidth:       769
@@ -163,6 +165,13 @@
       i += run.length;
     }
     cards = [].slice.call(document.querySelectorAll('.sj-card'));
+    /* The code diff is a picture of code on its slide. Left live, Tab walks
+       into the frame, and from then on every key goes to the frame's own
+       document: the deck stops answering, and Escape no longer exits. */
+    [].forEach.call(document.querySelectorAll('.sj-card iframe'), function (f) {
+      f.inert = true;
+      undo.push(function () { f.inert = false; });
+    });
     built = true;
   }
 
@@ -413,11 +422,16 @@
   }, { passive: false });
 
   /* Space presses a focused button rather than turning the slide, but only
-     under keyboard focus: a preset clicked with the mouse keeps focus, and the
-     presenter's next Space should still advance. */
+     when the reader got there with the keyboard. A button clicked with the
+     mouse (the toggle itself, a rail dot, a preset) keeps focus, and the
+     presenter's next Space must still advance. :focus-visible cannot tell
+     the two apart here: Chrome flips a focused element to focus-visible on
+     any keydown, before this handler runs. So track the modality directly. */
+  var keyboardFocus = false;
+  document.addEventListener('pointerdown', function () { keyboardFocus = false; }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Tab') keyboardFocus = true; }, true);
   function spaceBelongsTo(t) {
-    if (!t || !t.closest || !t.closest('button, summary, [role=button]')) return false;
-    try { return t.matches(':focus-visible'); } catch (e) { return true; }
+    return keyboardFocus && !!t && !!t.closest && !!t.closest('button, summary, [role=button]');
   }
 
   window.addEventListener('keydown', function (e) {

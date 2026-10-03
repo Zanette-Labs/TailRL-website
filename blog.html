@@ -28,18 +28,18 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
 
   <link rel="stylesheet" href="./static/css/bulma.min.css">
-  <link rel="stylesheet" href="./static/css/index.css?v=152">
+  <link rel="stylesheet" href="./static/css/index.css?v=153">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
     onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
 
-  <script defer src="./static/js/same-mean-tail.js?v=152"></script>
-  <script defer src="./static/js/tailrl-explorer.js?v=152"></script>
-  <script defer src="./static/js/demo-gesture.js?v=152"></script>
-  <script defer src="./static/js/index.js?v=152"></script>
-  <script defer src="./static/js/scroll-jack.js?v=152"></script>
+  <script defer src="./static/js/same-mean-tail.js?v=153"></script>
+  <script defer src="./static/js/tailrl-explorer.js?v=153"></script>
+  <script defer src="./static/js/demo-gesture.js?v=153"></script>
+  <script defer src="./static/js/index.js?v=153"></script>
+  <script defer src="./static/js/scroll-jack.js?v=153"></script>
 </head>
 <body>
 
@@ -184,7 +184,7 @@
     </div>
   
     <figure class="figure-container" style="margin-top: 1.75rem;">
-      <img loading="lazy" decoding="async" src="./static/images/teaser_tugofwar.png?v=152" width="4235" height="1104"
+      <img loading="lazy" decoding="async" src="./static/images/teaser_tugofwar.png?v=153" width="4235" height="1104"
            alt="Three panels. Left: RL post-training reshapes the base policy's reward distribution; GRPO and RLOO sharpen it around the mean while TailRL grows a heavy high-reward tail. Middle: expected-reward RL pulls a single rope, the mean. Right: TailRL pulls a rope at every reward threshold, hardest at the rarest.">
       <figcaption class="figure-caption">
         <strong>Expected reward pulls one rope; TailRL pulls them all.</strong>
@@ -401,7 +401,7 @@
     </details>
 
     <div style="margin: 0 0 0.5rem 0;">
-      <iframe id="tailrl-code-frame" src="./code.html?v=152" title="TailRL advantage computation as a diff against GRPO"
+      <iframe id="tailrl-code-frame" src="./code.html?v=153" title="TailRL advantage computation as a diff against GRPO"
               width="900" height="700"
               style="border: none; overflow: hidden; width: 100%; display: block;"
               scrolling="no"></iframe>
@@ -487,7 +487,7 @@
         coordinates, leading the strongest of them, L1+GIoU, on both CorLoc thresholds.
       </p>
       <figure class="figure-container">
-        <img loading="lazy" decoding="async" src="./static/images/imagenet_sup_curves.png?v=152" width="1644" height="522"
+        <img loading="lazy" decoding="async" src="./static/images/imagenet_sup_curves.png?v=153" width="1644" height="522"
              alt="Three panels showing CorLoc at 0.5, CorLoc at 0.75 and mean IoU against training epochs. The population TailRL curve sits at or above the L1, GIoU and L1+GIoU supervised baselines throughout.">
         <figcaption class="figure-caption">
           CorLoc@$0.5$, CorLoc@$0.75$ and mean IoU for population TailRL against the supervised baselines L1, GIoU
@@ -508,7 +508,7 @@
         the expected-reward baselines.
       </p>
       <figure class="figure-container">
-        <img loading="lazy" decoding="async" src="./static/images/imagenet_rl_curves.png?v=152" width="1644" height="581"
+        <img loading="lazy" decoding="async" src="./static/images/imagenet_rl_curves.png?v=153" width="1644" height="581"
              alt="Three panels showing CorLoc at 0.5, mean IoU and Best-of-1024 IoU against training epochs. TailRL curves at increasing rollout budgets rise toward a dashed exact-objective reference, and sit well above GRPO and RLOO. PKPO roughly ties the smallest TailRL budget on CorLoc and mean IoU; on Best-of-1024 IoU it sits above TailRL at N=16 and N=64 and level with N=256 and N=1024.">
         <figcaption class="figure-caption">
           CorLoc@$0.5$, mean IoU and Best-of-$1024$ IoU on the held-out validation set. TailRL trains at
@@ -534,7 +534,7 @@
       <span class="eyebrow">Can RL bootstrap from a poor initial policy?</span>
       <div class="pair-block">
       <figure class="figure-container pair-figure">
-        <img loading="lazy" decoding="async" src="./static/images/maze_init_sweep_wrap.png?v=152"
+        <img loading="lazy" decoding="async" src="./static/images/maze_init_sweep_wrap.png?v=153"
              width="834" height="691"
              alt="Pass@1 after RL plotted against Pass@1 before RL for TailRL, GRPO, RLOO and PKPO. In the shaded poor-initialization region the TailRL curve stays high, RLOO and GRPO start at zero, and PKPO sits well below TailRL.">
         <figcaption class="figure-caption">
@@ -569,7 +569,7 @@
       <span class="eyebrow">Do similar one-sample policies scale differently with more inference?</span>
       </div>
       <figure class="figure-container">
-        <img loading="lazy" decoding="async" src="./static/images/gui_scales.png?v=152" width="1669" height="987"
+        <img loading="lazy" decoding="async" src="./static/images/gui_scales.png?v=153" width="1669" height="987"
              alt="Pass@k, Best-of-k reward and training accuracy for Qwen2.5-VL 3B and 7B on ScreenSpot-Pro. The TailRL Pass@k curves keep climbing with the rollout budget while RLOO flattens and GRPO trails, even though training accuracy is similar for all three.">
         <figcaption class="figure-caption">
           ScreenSpot-Pro after post-training Qwen2.5-VL-3B (top) and 7B (bottom). Columns are Pass@$k$, Best-of-$k$
@@ -589,7 +589,7 @@
       <span class="eyebrow">Can the objective escape a safe but useless shortcut?</span>
       <div class="float-block">
       <figure class="figure-container wrap-right">
-        <img loading="lazy" decoding="async" src="./static/images/pie_rollout_dist_v2.png?v=152" width="791" height="633"
+        <img loading="lazy" decoding="async" src="./static/images/pie_rollout_dist_v2.png?v=153" width="791" height="633"
              alt="The initial reward distribution on PIE: a large mass of incorrect rollouts at zero, a tall spike at a speedup of one from copying the input, and a thin tail of correct and faster programs.">
         <figcaption class="figure-caption">
           Before training: $74.4\%$ of rollouts are wrong, $23.5\%$ are correct but no faster, which is the spike
@@ -610,7 +610,7 @@
 
       <div class="sj-col">
       <figure class="figure-container">
-        <img loading="lazy" decoding="async" src="./static/images/pie_results_v3.png?v=152" width="1652" height="521"
+        <img loading="lazy" decoding="async" src="./static/images/pie_results_v3.png?v=153" width="1652" height="521"
              alt="Three panels: mean training reward over one epoch, the density of per-problem Best-of-1024 reward on the test set, and correctness probability during training. TailRL's reward climbs well above the copying value while GRPO and RLOO settle at it.">
         <figcaption class="figure-caption">
           Mean reward over one epoch (left), per-problem Best-of-$1024$ reward on the test set (middle), where GRPO

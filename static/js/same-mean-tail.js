@@ -375,20 +375,29 @@
         d += (e2 === 0 ? 'M' : 'L') + bkx(e2) + ' ' + bky(v);
       }
       el('path', { d: d, fill: 'none', stroke: pair[1], 'stroke-width': 2.2 }, svg);
-      marks.push({ v: bestOfK(p, k), c: pair[1] });
+      var curve = [];
+      for (e2 = 0; e2 <= 10; e2++) curve.push(bestOfK(p, Math.pow(2, e2)));
+      marks.push({ v: bestOfK(p, k), c: pair[1], curve: curve });
     });
 
-    /* Each endpoint value sits clear of its own curve, which is nearly flat
-       out here: the upper one above its line, the lower one below. Set level
-       with the curve, the line ran through the digits. A lower label that
-       would collide with the axis goes above its line too, and the upper one
-       is lifted to keep the two apart. */
-    var LIFT = 7, DROP = 15, MIN = 15;
+    /* Each endpoint value sits clear of the curves. The upper one goes above
+       its line: the curves rise to the right, so above the endpoint is above
+       the whole stretch under the label. The lower one goes below its line,
+       measured at the label's left end, where that curve is lowest on
+       screen. If that would run into the axis, it is stacked above the upper
+       value instead; the colours say which is which. */
+    var LIFT = 6, DROP = 14, LINE = 15, AXIS = BK.yBase - 3;
+    var xL = bkx(kExp) - 44, eL = (xL - BK.x0) / (BK.x1 - BK.x0) * 10;
+    function yAt(m, e) {
+      var lo = Math.floor(e), f = e - lo;
+      return bky(m.curve[lo] + (m.curve[Math.min(10, lo + 1)] - m.curve[lo]) * f);
+    }
     marks.sort(function (a, b) { return bky(a.v) - bky(b.v); });
-    marks.forEach(function (m, i) { m.ly = bky(m.v) + (i === 0 ? -LIFT : DROP); });
+    marks[0].ly = bky(marks[0].v) - LIFT;
     if (marks.length === 2) {
-      if (marks[1].ly > BK.yBase - 4) marks[1].ly = bky(marks[1].v) - LIFT;
-      if (marks[0].ly > marks[1].ly - MIN) marks[0].ly = marks[1].ly - MIN;
+      var low = marks[1], bottom = Math.max(yAt(low, eL), yAt(low, 9), bky(low.v));
+      low.ly = bottom + DROP;
+      if (low.ly > AXIS) low.ly = marks[0].ly - LINE;
     }
     marks.forEach(function (m) {
       var lbl;
@@ -427,15 +436,18 @@
   function applyPaint(which, svg, e) {
     var b = binAt(svg, e), w = which === 'A' ? wA : wB;
     var v = Math.min(1, Math.max(0, 1 - (b.y - HG.yTop) / (HG.yBase - HG.yTop)));
-    var before = w.slice(), last = painting.last, i, step, from;
+    var last = painting.last, i, step, from;
     if (last >= 0 && Math.abs(b.i - last) > 1) {
       from = w[last]; step = b.i > last ? 1 : -1;
       for (i = last + step; i !== b.i; i += step) w[i] = from + (v - from) * (i - last) / (b.i - last);
     }
     w[b.i] = v;
-    if (!(total(w) > 0)) {                 // never leave a policy with no mass
-      for (i = 0; i < L; i++) w[i] = before[i];
-    }
+    /* Never leave a policy with no mass, nor with mass too small to see: the
+       mean and Best-of-k would then describe bars the reader cannot find.
+       Keep a visible bar standing under the pointer instead. */
+    var mx = 0;
+    for (i = 0; i < L; i++) if (w[i] > mx) mx = w[i];
+    if (mx < 0.04) w[b.i] = 0.04;
     painting.last = b.i;
     hot[which] = b.i;
   }
@@ -459,6 +471,8 @@
   function wireHist(svg, which) {
     svg.addEventListener('pointerdown', function (e) {
       if (painting && !e.isPrimary) return;   // a second finger joins nothing
+      // the demo never takes over a drag the reader has already started
+      if (painting && painting.id !== DEMO_ID && e.pointerId === DEMO_ID) return;
       // a new primary press ends any drag still open (the demo's, or one
       // whose release never arrived), so the widget can never get stuck
       if (painting) endPaint();

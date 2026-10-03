@@ -255,9 +255,9 @@ footer a:hover { color: #bfdbfe; }
 .explorer button:hover { background: #f3f4f6; border-color: #1f2937; }
 .explorer button:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
 .explorer button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.explorer svg { width: 100%; height: auto; display: block; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-/* only the surfaces you draw on take the touch; the read-only charts let a
-   swipe scroll the page */
+.explorer svg { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+/* only the surfaces you draw on take the touch; on the read-only charts a
+   swipe scrolls the page and a pinch zooms it */
 #smt-hist-a, #smt-hist-b, #ex-svg-rewards { touch-action: none; }
 .explorer .svg-label { font-family: var(--cm); font-size: 14.4px; fill: #1f2937; }
 .explorer .svg-title { font-family: var(--cm); font-size: 15.6px; font-weight: 600; fill: #1f2937; }
@@ -575,7 +575,8 @@ body:not(.sj-on) .sj-card, body:not(.sj-on) .sj-card-inner { display: contents; 
 body.sj-on .sj-card { height: 100vh; position: relative; overflow: hidden; }
 body.sj-on .sj-card-inner {
   position: absolute; top: 50%; left: 50%;
-  width: 100%; max-width: 960px;
+  /* a gutter on narrow windows keeps slide text clear of the rail's dots */
+  width: 100%; max-width: min(960px, calc(100vw - 112px));
   --sj-scale: 1; --sj-dy: 26px;
   transform: translate(-50%, calc(-50% + var(--sj-dy))) scale(var(--sj-scale));
   opacity: 0.28;
@@ -645,51 +646,55 @@ body.sj-on .sj-rail {
    blocks into those columns; on the page it has no box at all, so the blog's
    own layout is unchanged. */
 .sj-col { display: contents; }
-/* scroll-jack.js marks the slides that hold an experiment */
-body.sj-on .sj-card.sj-wide { width: 100vw; margin-left: calc(50% - 50vw); }
-body.sj-on .sj-card.sj-wide .sj-card-inner { max-width: min(1240px, calc(100vw - 112px)); }
-/* the full-bleed slide reaches past its .container, which clips sideways */
-body.sj-on .container { overflow: visible; }
-body.sj-on { overflow-x: clip; }
+/* Screen only: printed from presentation mode, the experiments come out as
+   they do on the page rather than as narrow full-bleed grids. */
+@media screen {
+  /* scroll-jack.js marks the slides that hold an experiment */
+  body.sj-on .sj-card.sj-wide { width: 100vw; margin-left: calc(50% - 50vw); }
+  body.sj-on .sj-card.sj-wide .sj-card-inner { max-width: min(1240px, calc(100vw - 112px)); }
+  /* the full-bleed slide reaches past its .container, which clips sideways */
+  body.sj-on .container { overflow: visible; }
+  body.sj-on { overflow-x: clip; }
 
-body.sj-on .result-card { margin: 0; }
-body.sj-on .sj-wide .result-card {
-  display: grid; column-gap: 2.5rem; align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-body.sj-on .sj-wide .result-card > * { grid-column: 1 / -1; }
-body.sj-on .sj-wide .result-card > .sj-col { display: block; grid-column: auto; }
-body.sj-on .sj-col > :first-child { margin-top: 0; }
-body.sj-on .sj-wide .result-card .figure-container { margin: 0.75rem 0; }
-body.sj-on .sj-wide .result-card .takeaway-box { margin-top: 0.75rem; }
-body.sj-on .sj-wide .result-card > p + .sj-col,
-body.sj-on .sj-wide .result-card > p + .sj-col + .sj-col { margin-top: 1.25rem; }
-
-/* ImageNet: the two questions side by side, rows aligned across them */
-@supports (grid-template-rows: subgrid) {
-  body.sj-on #imagenet > .sj-col {
-    display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start;
+  body.sj-on .result-card { margin: 0; }
+  body.sj-on .sj-wide .result-card {
+    display: grid; column-gap: 2.5rem; align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
+  body.sj-on .sj-wide .result-card > * { grid-column: 1 / -1; }
+  body.sj-on .sj-wide .result-card > .sj-col { display: block; grid-column: auto; }
+  body.sj-on .sj-col > :first-child { margin-top: 0; }
+  body.sj-on .sj-wide .result-card .figure-container { margin: 0.75rem 0; }
+  body.sj-on .sj-wide .result-card .takeaway-box { margin-top: 0.75rem; }
+  body.sj-on .sj-wide .result-card > p + .sj-col,
+  body.sj-on .sj-wide .result-card > p + .sj-col + .sj-col { margin-top: 1.25rem; }
+
+  /* ImageNet: the two questions side by side, rows aligned across them */
+  @supports (grid-template-rows: subgrid) {
+    body.sj-on #imagenet > .sj-col {
+      display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start;
+    }
+  }
+  /* GUI: the set-up and the question beside the figure, the takeaway below */
+  body.sj-on #gui { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+  body.sj-on #gui > .sj-col { align-self: center; }
+  body.sj-on #gui > .figure-container { grid-column: 2; margin: 0; }
+  /* Maze: the description, question and finding beside the figure, centred on
+     it by the two flexible rows around them; the takeaway below */
+  body.sj-on #maze { grid-template-rows: auto 1fr auto auto auto 1fr auto; }
+  body.sj-on #maze > .pair-block { display: contents; }
+  body.sj-on #maze > h3 { grid-row: 1; }
+  body.sj-on #maze > p { grid-column: 1; grid-row: 3; }
+  body.sj-on #maze > .eyebrow { grid-column: 1; grid-row: 4; margin-top: 1.25rem; }
+  body.sj-on #maze .pair-block > p { grid-column: 1; grid-row: 5; margin-top: 0.6rem; }
+  body.sj-on #maze .pair-figure { grid-column: 2; grid-row: 2 / 7; flex: none; max-width: none; margin: 0; }
+  body.sj-on #maze > .takeaway-box { grid-row: 7; }
+  /* Code runtime: the set-up and its starting distribution beside the result */
+  body.sj-on #code-opt { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); }
+  body.sj-on #code-opt > .float-block { grid-column: 1; align-self: start; margin-top: 0.75rem; gap: 1.25rem; }
+  body.sj-on #code-opt > .sj-col { grid-column: 2; }
+  body.sj-on #code-opt > .eyebrow { margin-bottom: 0; }
 }
-/* GUI: the set-up and the question beside the figure, the takeaway below */
-body.sj-on #gui { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
-body.sj-on #gui > .sj-col { align-self: center; }
-body.sj-on #gui > .figure-container { grid-column: 2; margin: 0; }
-/* Maze: the description, question and finding beside the figure, centred on
-   it by the two flexible rows around them; the takeaway below */
-body.sj-on #maze { grid-template-rows: auto 1fr auto auto auto 1fr auto; }
-body.sj-on #maze > .pair-block { display: contents; }
-body.sj-on #maze > h3 { grid-row: 1; }
-body.sj-on #maze > p { grid-column: 1; grid-row: 3; }
-body.sj-on #maze > .eyebrow { grid-column: 1; grid-row: 4; margin-top: 1.25rem; }
-body.sj-on #maze .pair-block > p { grid-column: 1; grid-row: 5; margin-top: 0.6rem; }
-body.sj-on #maze .pair-figure { grid-column: 2; grid-row: 2 / 7; flex: none; max-width: none; margin: 0; }
-body.sj-on #maze > .takeaway-box { grid-row: 7; }
-/* Code runtime: the set-up and its starting distribution beside the result */
-body.sj-on #code-opt { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); }
-body.sj-on #code-opt > .float-block { grid-column: 1; align-self: start; margin-top: 0.75rem; gap: 1.25rem; }
-body.sj-on #code-opt > .sj-col { grid-column: 2; }
-body.sj-on #code-opt > .eyebrow { margin-bottom: 0; }
 
 /* ---- reduced motion ------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {

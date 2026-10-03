@@ -85,7 +85,10 @@
        anyone nudged the page after it began. Nor does a press somewhere else
        on the page, which on a touch device is simply how scrolling starts.
        A press on this widget does, and so does Escape. */
-    function onPointer(e) { if (!synthetic && svg.contains(e.target)) cleanup(); }
+    function onPointer(e) {
+      var w = widgetOf(demo);
+      if (!synthetic && w && w.contains(e.target)) cleanup();
+    }
     function onKey(e) { if (e.key === 'Escape') cleanup(); }
     window.addEventListener('pointerdown', onPointer, true);
     window.addEventListener('keydown', onKey, true);
@@ -104,6 +107,8 @@
       last = c;
       cur.style.transform = 'translate(' + c.x + 'px,' + c.y + 'px)';
       if (!pressed) {
+        // a reader who pressed during the lead-in keeps their drag
+        if (held > 0) { cleanup(); return; }
         pressed = true;
         cur.classList.add('is-down');
         send(svg, 'pointerdown', c.x, c.y, 1);

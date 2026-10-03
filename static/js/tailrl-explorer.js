@@ -158,7 +158,9 @@
   };
   var geo = null, PA = null;
   function pickGeo() {
-    var g = root.getBoundingClientRect().width < NARROW ? GEO.narrow : GEO.wide;
+    /* the layout width: a presentation slide scales the widget with a CSS
+       transform, which the on-screen rect would count */
+    var g = (root.clientWidth || root.offsetWidth) < NARROW ? GEO.narrow : GEO.wide;
     if (g === geo) return false;
     geo = g; PA = g.PA;
     svgR.setAttribute('viewBox', g.vbR);
@@ -239,7 +241,7 @@
      works. Bins between this point and the last are filled in on the way, so a
      quick sweep draws a continuous shape instead of leaving gaps wherever no
      frame happened to land. */
-  var lastBin = -1;
+  var lastBin = -1, FLOOR = 0.04;
   function setBin(i, v) { if (i >= 0 && i < KB) shape[i] = Math.min(1, Math.max(0, v)); }
   function paint(p) {
     var before = shape.slice();
@@ -254,8 +256,10 @@
       }
     }
     setBin(c, target);
-    // an empty distribution has no rollouts to draw; keep the last bin standing
-    if (!shape.some(function (v) { return v > 0; })) shape = before;
+    /* An empty distribution has nothing to draw rollouts from, and one whose
+       remaining mass is too small to see would put them somewhere invisible.
+       Keep a visible bar standing under the pointer instead. */
+    if (Math.max.apply(null, shape) < FLOOR) setBin(c, FLOOR);
     lastBin = c;
     resample();
     hover = nearest(t);
