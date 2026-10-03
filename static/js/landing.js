@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Landing page: the video lightbox and the presentation-mode choice.
+   Landing page: the video lightbox.
 
    Vanilla ES5, no dependencies, no globals. Progressive enhancement: without
    JavaScript, or without <dialog>, the Video choice is an ordinary link to
@@ -54,22 +54,5 @@
     window.addEventListener('hashchange', function () {
       if (location.hash === '#video') show(false);
     });
-  }
-
-  /* ---- presentation mode -------------------------------------------------
-     The blog only offers presentation mode with a fine pointer, a screen
-     wider than 768px and motion allowed (scroll-jack.js, allowed()). Anywhere
-     else the link still opens the blog, so say what the reader will get. */
-  var sub = document.getElementById('present-sub');
-  if (sub && window.matchMedia) {
-    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-    var coarse = window.matchMedia('(pointer: coarse)');
-    var update = function () {
-      if (reduce.matches) sub.textContent = 'Off with reduced motion';
-      else if (coarse.matches || window.innerWidth < 769) sub.textContent = 'Desktop only';
-      else sub.textContent = '';
-    };
-    update();
-    window.addEventListener('resize', update);
   }
 })();
