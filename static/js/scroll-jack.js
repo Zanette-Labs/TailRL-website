@@ -31,7 +31,7 @@
     duration:       680,   // ms per slide transition
     wheelThreshold:  28,   // accumulated |deltaY| before a slide advances
     quietMs:        150,   // trackpad momentum must be quiet this long to unlock
-    pad:             40,   // px of breathing room above and below a slide
+    pad:             52,   // px above and below a slide; clears the toggle in the corner
     // a slide is scaled down as far as it must to fit; this only guards
     // against a degenerate window, it is not a legibility floor
     minScale:      0.3,
@@ -428,7 +428,8 @@
      the two apart here: Chrome flips a focused element to focus-visible on
      any keydown, before this handler runs. So track the modality directly. */
   var keyboardFocus = false;
-  document.addEventListener('pointerdown', function () { keyboardFocus = false; }, true);
+  // the demo gesture's synthetic presses are not the reader reaching for the mouse
+  document.addEventListener('pointerdown', function (e) { if (e.isTrusted) keyboardFocus = false; }, true);
   document.addEventListener('keydown', function (e) { if (e.key === 'Tab') keyboardFocus = true; }, true);
   function spaceBelongsTo(t) {
     return keyboardFocus && !!t && !!t.closest && !!t.closest('button, summary, [role=button]');

@@ -255,9 +255,10 @@ footer a:hover { color: #bfdbfe; }
 .explorer button:hover { background: #f3f4f6; border-color: #1f2937; }
 .explorer button:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
 .explorer button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.explorer svg { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.explorer svg { width: 100%; height: auto; display: block; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; }
 /* only the surfaces you draw on take the touch; on the read-only charts a
-   swipe scrolls the page and a pinch zooms it */
+   vertical swipe scrolls the page, a pinch zooms it, and a sideways drag
+   still reaches the advantage panel's scrubbing */
 #smt-hist-a, #smt-hist-b, #ex-svg-rewards { touch-action: none; }
 .explorer .svg-label { font-family: var(--cm); font-size: 14.4px; fill: #1f2937; }
 .explorer .svg-title { font-family: var(--cm); font-size: 15.6px; font-weight: 600; fill: #1f2937; }
@@ -587,13 +588,16 @@ body.sj-on .pagenav { display: none; }
 /* Slides are 100vh and centre their own content, so the section chrome around
    them only opens seams between consecutive slides. Collapse it while
    presentation mode is on, and restore it on the way out. */
-body.sj-on section.section,
-body.sj-on section.hero,
-body.sj-on .hero .hero-body { padding-top: 0; padding-bottom: 0; }
-/* Reference material, not slide content: the pseudocode disclosure and the
-   page footer (the title slide already carries the contact line). */
-body.sj-on details.deep,
-body.sj-on footer.footer { display: none; }
+@media screen {
+  body.sj-on section.section,
+  body.sj-on section.hero,
+  body.sj-on .hero .hero-body { padding-top: 0; padding-bottom: 0; }
+  /* Reference material, not slide content: the pseudocode disclosure and
+     the page footer (the title slide already carries the contact line).
+     Screen only, so a print from presentation mode keeps them. */
+  body.sj-on details.deep,
+  body.sj-on footer.footer { display: none; }
+}
 /* the title slide is a slide like any other once presentation mode is on */
 body.sj-on .hero { min-height: 0; display: block; }
 /* The code diff is a picture of code on its slide. Left live, the wheel and
