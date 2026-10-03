@@ -213,7 +213,12 @@
   /* ------------------------------------------------------------------- state */
   // k is fixed at the largest budget; the means are not locked
   var wA = [], wB = [], preset = 'random', kExp = 10;
-  var painting = null;                 // { which: 'A'|'B', last: binIndex }
+  var painting = null;                 // { which: 'A'|'B', last: binIndex, id: pointerId }
+  /* The page's "this is interactive" gesture (demo-gesture.js) drives the
+     histogram with real pointer events under this id. Its drag is a
+     demonstration, not an edit: the pair is put back when it lets go, so the
+     matched means the copy promises survive it. */
+  var DEMO_ID = 9901, demoSnap = null;
   var hot = { A: -1, B: -1 };
   var rafId = 0;
 
@@ -373,23 +378,23 @@
       marks.push({ v: bestOfK(p, k), c: pair[1] });
     });
 
-    /* Push the two endpoint labels to a fixed minimum separation when the
-       curves finish close together. A fixed nudge is not enough: the label box
-       is about 15 user units tall, so the gap has to be set, not incremented. */
+    /* Each endpoint value sits clear of its own curve, which is nearly flat
+       out here: the upper one above its line, the lower one below. Set level
+       with the curve, the line ran through the digits. A lower label that
+       would collide with the axis goes above its line too, and the upper one
+       is lifted to keep the two apart. */
+    var LIFT = 7, DROP = 15, MIN = 15;
+    marks.sort(function (a, b) { return bky(a.v) - bky(b.v); });
+    marks.forEach(function (m, i) { m.ly = bky(m.v) + (i === 0 ? -LIFT : DROP); });
     if (marks.length === 2) {
-      var y0 = bky(marks[0].v), y1 = bky(marks[1].v);
-      var gap = Math.abs(y0 - y1), MIN = 17, push;
-      if (gap < MIN) {
-        push = (MIN - gap) / 2;
-        marks[0].dy = (y0 <= y1) ? -push : push;
-        marks[1].dy = (y0 <= y1) ? push : -push;
-      }
+      if (marks[1].ly > BK.yBase - 4) marks[1].ly = bky(marks[1].v) - LIFT;
+      if (marks[0].ly > marks[1].ly - MIN) marks[0].ly = marks[1].ly - MIN;
     }
     marks.forEach(function (m) {
       var lbl;
       el('circle', { cx: bkx(kExp), cy: bky(m.v), r: 4, fill: m.c }, svg);
-      lbl = text(svg, bkx(kExp) - 8, bky(m.v) + 4 + (m.dy || 0), d3(m.v), 'svg-tick', 'end', m.c);
-      // halo, so the value stays readable where it overlaps the curve
+      lbl = text(svg, bkx(kExp) - 4, m.ly, d3(m.v), 'svg-tick', 'end', m.c);
+      // halo, so the value stays readable over the grid lines
       lbl.setAttribute('stroke', '#fff');
       lbl.setAttribute('stroke-width', '3');
       lbl.setAttribute('paint-order', 'stroke');
@@ -416,19 +421,36 @@
     return { i: Math.min(L - 1, Math.max(0, i)), y: q.y };
   }
 
+  /* A quick sweep moves more than one bin between events, so the bins in
+     between are filled in on the way, as the advantage explorer does;
+     otherwise the drag leaves a comb. */
   function applyPaint(which, svg, e) {
     var b = binAt(svg, e), w = which === 'A' ? wA : wB;
-    var v = 1 - (b.y - HG.yTop) / (HG.yBase - HG.yTop);
-    var old = w[b.i];
-    w[b.i] = Math.min(1, Math.max(0, v));
-    if (!(total(w) > 0)) w[b.i] = old;    // never leave a policy with no mass
+    var v = Math.min(1, Math.max(0, 1 - (b.y - HG.yTop) / (HG.yBase - HG.yTop)));
+    var before = w.slice(), last = painting.last, i, step, from;
+    if (last >= 0 && Math.abs(b.i - last) > 1) {
+      from = w[last]; step = b.i > last ? 1 : -1;
+      for (i = last + step; i !== b.i; i += step) w[i] = from + (v - from) * (i - last) / (b.i - last);
+    }
+    w[b.i] = v;
+    if (!(total(w) > 0)) {                 // never leave a policy with no mass
+      for (i = 0; i < L; i++) w[i] = before[i];
+    }
     painting.last = b.i;
     hot[which] = b.i;
   }
 
-  function endPaint() {
+  function endPaint(e) {
     if (!painting) return;
+    // a second finger lifting does not end the first one's drag
+    if (e && e.pointerId !== undefined && e.pointerId !== painting.id) return;
+    var demo = painting.id === DEMO_ID;
     painting = null;
+    if (demo && demoSnap) {
+      wA = demoSnap.a; wB = demoSnap.b;
+      hot.A = -1; hot.B = -1;
+    }
+    demoSnap = null;
     /* No mean lock: a preset still opens as a fair same-mean pair, but once
        the reader starts dragging the two means are free to separate. */
     render();
@@ -436,14 +458,19 @@
 
   function wireHist(svg, which) {
     svg.addEventListener('pointerdown', function (e) {
-      painting = { which: which, last: -1 };
+      if (painting && !e.isPrimary) return;   // a second finger joins nothing
+      // a new primary press ends any drag still open (the demo's, or one
+      // whose release never arrived), so the widget can never get stuck
+      if (painting) endPaint();
+      if (e.pointerId === DEMO_ID) demoSnap = { a: wA.slice(), b: wB.slice() };
+      painting = { which: which, last: -1, id: e.pointerId };
       if (svg.setPointerCapture) { try { svg.setPointerCapture(e.pointerId); } catch (err) {} }
       applyPaint(which, svg, e);
       render();
       e.preventDefault();
     });
     svg.addEventListener('pointermove', function (e) {
-      if (painting && painting.which === which) { applyPaint(which, svg, e); render(); return; }
+      if (painting && painting.which === which && painting.id === e.pointerId) { applyPaint(which, svg, e); render(); return; }
       if (painting) return;
       var b = binAt(svg, e);
       if (hot[which] !== b.i) { hot[which] = b.i; render(); }
@@ -460,6 +487,14 @@
     var pair = makePair(key);
     preset = key; wA = pair.a; wB = pair.b;
     hot.A = -1; hot.B = -1;
+    // a drag in progress (the reader's, or the demo's) must not repaint it
+    painting = null; demoSnap = null;
+  }
+  function markPreset(active) {
+    pBox.querySelectorAll('button').forEach(function (x) {
+      x.classList.toggle('active', x === active);
+      x.setAttribute('aria-pressed', x === active ? 'true' : 'false');
+    });
   }
 
   var pBox = document.getElementById('smt-presets');
@@ -468,9 +503,10 @@
     b.type = 'button';
     b.textContent = PRESETS[key].label;
     if (key === preset) b.classList.add('active');
+    b.setAttribute('aria-pressed', key === preset ? 'true' : 'false');
     b.addEventListener('click', function () {
       loadPreset(key);
-      pBox.querySelectorAll('button').forEach(function (x) { x.classList.toggle('active', x === b); });
+      markPreset(b);
       render();
     });
     pBox.appendChild(b);
@@ -478,9 +514,8 @@
 
   var resetBtn = document.getElementById('smt-reset');
   if (resetBtn) resetBtn.addEventListener('click', function () {
-    painting = null;
     loadPreset('random');
-    pBox.querySelectorAll('button').forEach(function (x, i) { x.classList.toggle('active', i === 0); });
+    markPreset(pBox.querySelector('button'));
     paint();
     resetBtn.blur();
   });

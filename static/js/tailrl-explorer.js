@@ -136,8 +136,35 @@
   var svgR = document.getElementById('ex-svg-rewards');
   var svgA = document.getElementById('ex-svg-adv');
 
-  // ---- Panel A: the draggable reward strip ----
-  var PA = { x0: 60, x1: 730, yRoll: 233, kdeTop: 30, kdeBase: 214 };
+  /* Two layouts. The wide one sets the two advantage panels side by side in
+     a 760-unit drawing; on a phone that drawing shrinks to 40% and its labels
+     to 5px, so below NARROW the drawing is 400 units wide and the panels
+     stack. The label sizes are in drawing units (index.css), so they come
+     out about twice as large. */
+  var NARROW = 560;
+  var GEO = {
+    wide: {
+      vbR: '0 0 760 300', vbA: '0 0 760 250',
+      PA: { x0: 60, x1: 730, yRoll: 233, kdeTop: 30, kdeBase: 214, densX: 20,
+            tickDy: 32, labelDy: 50 },
+      adv: function (mi) { return { px: 84 + mi * 372, py: 0, w: 300, yTop: 48, yBot: 208, labelX: -60 }; }
+    },
+    narrow: {
+      vbR: '0 0 400 262', vbA: '0 0 400 470',
+      PA: { x0: 36, x1: 382, yRoll: 200, kdeTop: 30, kdeBase: 182, densX: 12,
+            tickDy: 28, labelDy: 48 },
+      adv: function (mi) { return { px: 84, py: mi * 235, w: 300, yTop: 48, yBot: 196, labelX: -64 }; }
+    }
+  };
+  var geo = null, PA = null;
+  function pickGeo() {
+    var g = root.getBoundingClientRect().width < NARROW ? GEO.narrow : GEO.wide;
+    if (g === geo) return false;
+    geo = g; PA = g.PA;
+    svgR.setAttribute('viewBox', g.vbR);
+    svgA.setAttribute('viewBox', g.vbA);
+    return true;
+  }
 
   /* No KDE any more: the curve on screen is the distribution the reader drew,
      and the rollouts are derived from it rather than the other way round. */
@@ -162,10 +189,12 @@
     var res = tailrl(rewards), idx = res.idx, n = rewards.length, sz = sizing();
     mtext(svgR, (PA.x0 + PA.x1) / 2, 20, 'Draw the reward distribution', 'svg-title');
 
-    /* density band above the axis */
-    var dens = shape, di, dx, dy, bw = (PA.x1 - PA.x0) / KB;
+    /* density band above the axis. Bar di is centred on reward di/(KB-1),
+       the grid the pointer maps to and the rollouts are read from, so a press
+       edits the bar under it and the last bar's rollouts read r = 1.00. */
+    var dens = shape, di, dx, dy, bw = (PA.x1 - PA.x0) / (KB - 1);
     for (di = 0; di < KB; di++) {
-      dx = PA.x0 + di * bw;
+      dx = xOf(di / (KB - 1)) - bw / 2;
       dy = PA.kdeBase - Math.max(0, dens[di]) * (PA.kdeBase - PA.kdeTop);
       el('rect', { x: dx + bw * 0.12, y: dy, width: bw * 0.76,
                    height: Math.max(0.6, PA.kdeBase - dy),
@@ -174,16 +203,16 @@
     el('line', { x1: PA.x0, x2: PA.x1, y1: PA.kdeBase, y2: PA.kdeBase,
                  stroke: C.dist, 'stroke-width': 1, opacity: 0.6 }, svgR);
     var dmid = (PA.kdeTop + PA.kdeBase) / 2;
-    var dl = mtext(svgR, 20, dmid, 'density', 'svg-tick');
-    dl.setAttribute('transform', 'rotate(-90, 20, ' + dmid + ')');
+    var dl = mtext(svgR, PA.densX, dmid, 'density', 'svg-tick');
+    dl.setAttribute('transform', 'rotate(-90, ' + PA.densX + ', ' + dmid + ')');
 
     // reward axis
     el('line', { x1: PA.x0, x2: PA.x1, y1: PA.yRoll, y2: PA.yRoll, stroke: C.ink, 'stroke-width': 1.2 }, svgR);
     [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(function (v) {
       el('line', { x1: xOf(v), x2: xOf(v), y1: PA.yRoll - 4, y2: PA.yRoll + 4, stroke: C.ink, 'stroke-width': 1 }, svgR);
-      text(svgR, xOf(v), PA.yRoll + 32, v.toFixed(1), 'svg-tick');
+      text(svgR, xOf(v), PA.yRoll + PA.tickDy, v.toFixed(1), 'svg-tick');
     });
-    mtext(svgR, (PA.x0 + PA.x1) / 2, PA.yRoll + 50, 'reward |r|', 'svg-label');
+    mtext(svgR, (PA.x0 + PA.x1) / 2, PA.yRoll + PA.labelDy, 'reward |r|', 'svg-label');
 
     var focus = hover >= 0 ? hover : idx[n - 1];
 
@@ -213,6 +242,7 @@
   var lastBin = -1;
   function setBin(i, v) { if (i >= 0 && i < KB) shape[i] = Math.min(1, Math.max(0, v)); }
   function paint(p) {
+    var before = shape.slice();
     var t = tOf(p.x), c = Math.round(t * (KB - 1));
     var target = (PA.kdeBase - p.y) / (PA.kdeBase - PA.kdeTop);
     target = Math.min(1, Math.max(0, target));
@@ -224,12 +254,14 @@
       }
     }
     setBin(c, target);
+    // an empty distribution has no rollouts to draw; keep the last bin standing
+    if (!shape.some(function (v) { return v > 0; })) shape = before;
     lastBin = c;
     resample();
     hover = nearest(t);
   }
 
-  var painting = false, rafId = 0, pendPt = null;
+  var painting = false, rafId = 0, pendPt = null, activeId = null;
   function flush() { rafId = 0; if (pendPt) { paint(pendPt); pendPt = null; } render(); }
   function scheduleRender() { if (!rafId) rafId = requestAnimationFrame(flush); }
 
@@ -237,14 +269,16 @@
   function inBand(p) { return p.y >= PA.kdeTop - 12 && p.y <= PA.kdeBase + 8; }
 
   svgR.addEventListener('pointerdown', function (e) {
+    if (painting && !e.isPrimary) return;     // a second finger joins nothing
     var p = localX(svgR, e);
     if (!inBand(p)) return;
-    painting = true; lastBin = -1;
+    painting = true; lastBin = -1; activeId = e.pointerId;
     if (svgR.setPointerCapture) { try { svgR.setPointerCapture(e.pointerId); } catch (err) {} }
     pendPt = p; scheduleRender(); e.preventDefault();
   });
 
   svgR.addEventListener('pointermove', function (e) {
+    if (painting && e.pointerId !== activeId) return;
     var p = localX(svgR, e);
     if (!painting) {
       var j = nearest(tOf(p.x));
@@ -254,17 +288,18 @@
     pendPt = p; scheduleRender();
   });
 
-  function stopPaint() {
+  function stopPaint(e) {
     if (!painting) return;
-    painting = false; lastBin = -1;
+    if (e && e.pointerId !== undefined && e.pointerId !== activeId) return;
+    painting = false; lastBin = -1; activeId = null;
     if (pendPt) { paint(pendPt); pendPt = null; }
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
     render();
   }
   svgR.addEventListener('pointerup', stopPaint);
   svgR.addEventListener('pointercancel', stopPaint);
-  svgR.addEventListener('pointerleave', function () {
-    stopPaint();
+  svgR.addEventListener('pointerleave', function (e) {
+    stopPaint(e);
     if (hover !== -1) { hover = -1; scheduleRender(); }
   });
 
@@ -278,22 +313,22 @@
       { name: 'REINFORCE', sub: 'A = r − r̄', A: reinforce(rewards), color: C.reinforce },
       { name: 'TailRL',    sub: 'A = ω − ω̄', A: res.A,              color: C.tailrl }
     ];
-    var panelW = 300, gap = 72, x0 = 84, yTop = 48, yBot = 208;
     methods.forEach(function (m, mi) {
-      var px = x0 + mi * (panelW + gap);
+      var g = geo.adv(mi), px = g.px, py = g.py, panelW = g.w;
+      var yTop = g.yTop + py, yBot = g.yBot + py;
       // each panel is normalised by its own largest magnitude, so the two show
       // the shape of the update; the printed bounds carry the differing scale
       var maxAbs = m.A.reduce(function (s, v) { return Math.max(s, Math.abs(v)); }, 0) || 1;
       var yMid = (yTop + yBot) / 2, scale = (yBot - yTop) / 2 / maxAbs * 0.92;
-      text(svgA, px + panelW / 2, 20, m.name + ' advantage', 'svg-title').style.fill = m.color;
-      mtext(svgA, px + panelW / 2, 36, m.sub, 'svg-tick');
+      text(svgA, px + panelW / 2, 20 + py, m.name + ' advantage', 'svg-title').style.fill = m.color;
+      mtext(svgA, px + panelW / 2, 36 + py, m.sub, 'svg-tick');
       el('line', { x1: px, x2: px + panelW, y1: yMid, y2: yMid, stroke: C.muted, 'stroke-width': 1 }, svgA);
       text(svgA, px - 6, yTop + 4, '+' + maxAbs.toFixed(dec(maxAbs)), 'svg-tick', 'end');
       text(svgA, px - 6, yBot + 4, '−' + maxAbs.toFixed(dec(maxAbs)), 'svg-tick', 'end');
       // sits outboard of the bounds numbers, matching the rewards panel's
       // rotated "density" label
-      var yl = mtext(svgA, px - 60, yMid, 'Advantages', 'svg-tick');
-      yl.setAttribute('transform', 'rotate(-90, ' + (px - 60) + ', ' + yMid + ')');
+      var yl = mtext(svgA, px + g.labelX, yMid, 'Advantages', 'svg-tick');
+      yl.setAttribute('transform', 'rotate(-90, ' + (px + g.labelX) + ', ' + yMid + ')');
 
       if (sz.bars) {
         var bw = panelW / n;
@@ -337,11 +372,16 @@
   // ---- Controls ----
   var nSlider = document.getElementById('ex-n-slider'), nValue = document.getElementById('ex-n-value');
   var pBox = document.getElementById('ex-preset-buttons');
+  // the slider steps over indices 0-3; say the rollout count instead
+  function showN() {
+    nValue.textContent = String(N);
+    nSlider.setAttribute('aria-valuetext', N + ' rollouts');
+  }
   nSlider.addEventListener('input', function () {
     N = STOPS[parseInt(nSlider.value, 10)] || STOPS[START];
     resample();                       // same distribution, more rollouts drawn from it
-    hover = -1; painting = false; pendPt = null;
-    nValue.textContent = String(N);
+    hover = -1; painting = false; pendPt = null; activeId = null;
+    showN();
     render();
   });
 
@@ -354,9 +394,9 @@
 
   var resetBtn = document.getElementById('ex-reset');
   if (resetBtn) resetBtn.addEventListener('click', function () {
-    N = STOPS[START]; hover = -1; painting = false; pendPt = null;
+    N = STOPS[START]; hover = -1; painting = false; pendPt = null; activeId = null;
     nSlider.value = String(START);
-    nValue.textContent = String(N);
+    showN();
     shape = newShape(); resample();
     render();
     resetBtn.blur();
@@ -364,6 +404,13 @@
 
   shape = newShape();
   resample();
-  nValue.textContent = String(N);
+  showN();
+  pickGeo();
   render();
+
+  var resizeTimer = 0;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { if (pickGeo()) render(); }, 120);
+  });
 })();

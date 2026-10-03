@@ -118,7 +118,7 @@ h4.subsection-title {
   padding: 1.5rem;
   border: 1px solid var(--border-light);
 }
-.math-box h4 { font-weight: 600; margin-bottom: 1rem; color: var(--text-dark); }
+.math-box h3 { font-weight: 600; margin-bottom: 1rem; color: var(--text-dark); }
 .math-box .math-note { color: var(--text-muted); font-size: 1.08rem; margin-top: 1rem; text-align: center; }
 
 .figure-container {
@@ -146,7 +146,7 @@ h4.subsection-title {
   margin: 1.5rem 0;
   border: 1px solid var(--border-light);
 }
-.result-card h4 { color: var(--tailrl); font-weight: 600; font-size: 1.6rem;
+.result-card h3 { color: var(--tailrl); font-weight: 600; font-size: 1.6rem;
                   line-height: 1.3; margin-bottom: 0.6rem; }
 .result-card .task-tag {
   display: inline-block;
@@ -255,7 +255,10 @@ footer a:hover { color: #bfdbfe; }
 .explorer button:hover { background: #f3f4f6; border-color: #1f2937; }
 .explorer button:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
 .explorer button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.explorer svg { width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
+.explorer svg { width: 100%; height: auto; display: block; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+/* only the surfaces you draw on take the touch; the read-only charts let a
+   swipe scroll the page */
+#smt-hist-a, #smt-hist-b, #ex-svg-rewards { touch-action: none; }
 .explorer .svg-label { font-family: var(--cm); font-size: 14.4px; fill: #1f2937; }
 .explorer .svg-title { font-family: var(--cm); font-size: 15.6px; font-weight: 600; fill: #1f2937; }
 .explorer .svg-tick { font-family: var(--cm); font-size: 13.2px; fill: #1f2937; }
@@ -318,7 +321,7 @@ footer a:hover { color: #bfdbfe; }
   .insight-box { padding: 1rem 1.25rem; }
   .insight-box p { font-size: 1.2rem; }
   .result-card { padding: 1.25rem; }
-  .result-card h4 { font-size: 1.32rem; }
+  .result-card h3 { font-size: 1.32rem; }
   .figure-caption { font-size: 0.96rem; }
   table.comparison-table { min-width: 500px; font-size: 1.02rem; }
   table.comparison-table th, table.comparison-table td { padding: 0.5rem 0.75rem; }
@@ -328,7 +331,6 @@ footer a:hover { color: #bfdbfe; }
   footer.footer { padding: 1.5rem 1rem; }
   footer.footer img { height: 60px !important; }
   footer p { font-size: 1.02rem; }
-  .hero .hero-body p[style*="Castoro"] { font-size: 1.14rem !important; }
   .explorer { padding: 1rem; }
   .takeaway-box { padding: 1rem 1.25rem; }
 }
@@ -337,13 +339,13 @@ footer a:hover { color: #bfdbfe; }
   .publication-authors { font-size: 0.96rem !important; }
   h2.title.is-3, .title.is-3.section-title { font-size: 0.75rem; }
   .content p, .content li { font-size: 1.08rem; }
-  .math-box h4 { font-size: 1.14rem; }
+  .math-box h3 { font-size: 1.14rem; }
   .math-box p { font-size: 1.02rem; }
   .result-card { padding: 1rem; }
-  .result-card h4 { font-size: 1.25rem; }
+  .result-card h3 { font-size: 1.25rem; }
   .formula-box p { font-size: 1.02rem; }
   .result-card[style*="border-left"] { padding: 1rem; }
-  .result-card[style*="border-left"] h4 { font-size: 1.2rem; }
+  .result-card[style*="border-left"] h3 { font-size: 1.2rem; }
   .result-card[style*="border-left"] div[style*="text-align: center"] { font-size: 1.08rem !important; }
 }
 
@@ -382,6 +384,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--tailrl); outlin
   font-family: var(--cm); font-weight: 600;
   color: var(--tailrl); font-size: 1.08rem; margin-right: auto;
 }
+/* the brand links home to the landing page; it is not a section link, so it
+   keeps its own colour and never takes the current-section underline */
+.pagenav a.brand { border-bottom: 0; }
+.pagenav a.brand:hover { color: var(--tailrl-dark); }
 .pagenav a {
   font-family: var(--cm); font-size: 1.02rem;
   color: var(--text-muted); text-decoration: none; padding: 0.2rem 0;
@@ -481,8 +487,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--tailrl); outlin
   display: block; font-family: var(--cm); font-size: 0.96rem;
   font-weight: 600; color: var(--tailrl); margin-bottom: 0.3rem;
 }
-.result-card h4 { margin-top: 0; }
-.result-card > p { font-size: 1.164rem; }
+.result-card h3 { margin-top: 0; }
+.result-card > p, .result-card > .sj-col > p { font-size: 1.164rem; }
 .result-note { font-size: 1.08rem; color: var(--text-muted); }
 .takeaway-line {
   border-left: 3px solid var(--tailrl); padding-left: 0.9rem; margin-top: 1.1rem;
@@ -552,7 +558,7 @@ details.deep .deep-body p { font-size: 1.128rem; }
 .explorer .reset:hover { color: var(--tailrl); border-color: var(--tailrl); }
 
 /* ---- copy-to-clipboard feedback ------------------------------------------ */
-.copy-ok { color: var(--rloo); font-size: 1.02rem; margin-left: 0.5rem; }
+.copy-ok { color: #13795b; font-size: 1.02rem; margin-left: 0.5rem; }
 
 /* ---- presentation mode (opt-in only) ------------------------------------- */
 .sj-toggle {
@@ -577,23 +583,113 @@ body.sj-on .sj-card-inner {
 }
 body.sj-on .sj-card.is-active .sj-card-inner { --sj-dy: 0px; opacity: 1; }
 body.sj-on .pagenav { display: none; }
-/* Cards are 100vh and centre their own content, so the section chrome around
-   them only opens seams between consecutive cards. Collapse it while
+/* Slides are 100vh and centre their own content, so the section chrome around
+   them only opens seams between consecutive slides. Collapse it while
    presentation mode is on, and restore it on the way out. */
 body.sj-on section.section,
 body.sj-on section.hero,
-body.sj-on .hero .hero-body,
-body.sj-on footer.footer { padding-top: 0; padding-bottom: 0; }
-/* Setup tables are reference material, not slide content. Left in, a collapsed
-   disclosure is tall enough to be packed but shows nothing, so it lands on a
-   card of its own that reads as an empty slide. `sj-on` is set before the
-   packer runs, and the packer skips display:none blocks, so this keeps them
-   out of the cards rather than merely hiding them inside one. */
-body.sj-on details.deep { display: none; }
-/* the title slide is a card like any other once presentation mode is on */
+body.sj-on .hero .hero-body { padding-top: 0; padding-bottom: 0; }
+/* Reference material, not slide content: the pseudocode disclosure and the
+   page footer (the title slide already carries the contact line). */
+body.sj-on details.deep,
+body.sj-on footer.footer { display: none; }
+/* the title slide is a slide like any other once presentation mode is on */
 body.sj-on .hero { min-height: 0; display: block; }
-@media print { .sj-toggle { display: none !important; } }
+/* The code diff is a picture of code on its slide. Left live, the wheel and
+   the arrow keys go to the frame's own document and scroll the deck between
+   slides instead of stepping it. */
+body.sj-on #tailrl-code-frame { pointer-events: none; }
+/* the closing links share the BibTeX slide, so they lose their own band */
+body.sj-on .sj-card .closing { background: transparent; border-top: 0; margin-top: 1.75rem; }
+
+/* section rail: one dot per section, the current one lit, its name on hover */
+.sj-rail { display: none; }
+body.sj-on .sj-rail {
+  position: fixed; right: 18px; top: 50%; transform: translateY(-50%); z-index: 60;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+.sj-rail button {
+  position: relative; width: 11px; height: 11px; padding: 0;
+  border-radius: 50%; border: 1.5px solid #9ca3af; background: #fff; cursor: pointer;
+}
+.sj-rail button:hover, .sj-rail button:focus-visible { border-color: var(--tailrl); }
+.sj-rail button:focus-visible { outline: 2px solid var(--tailrl); outline-offset: 2px; }
+.sj-rail button.active { background: var(--tailrl); border-color: var(--tailrl); }
+.sj-rail-label {
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+  white-space: nowrap; pointer-events: none;
+  font-family: var(--cm); font-size: 0.86rem; color: var(--text-dark);
+  background: rgba(255, 255, 255, 0.95); border: 1px solid var(--border-light);
+  border-radius: 4px; padding: 0.1rem 0.45rem;
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.sj-rail button:hover .sj-rail-label,
+.sj-rail button:focus-visible .sj-rail-label { opacity: 1; }
+
+@media print {
+  .sj-toggle, .sj-rail { display: none !important; }
+  /* printing from presentation mode gives the ordinary page, not 100vh
+     slides with all but one faded out */
+  body.sj-on .sj-card { height: auto; overflow: visible; }
+  body.sj-on .sj-card-inner {
+    position: static; transform: none !important; opacity: 1 !important;
+    max-width: none; transition: none;
+  }
+}
 @media (max-width: 768px) { .sj-toggle { display: none !important; } }
+
+/* ---- one slide per experiment ----------------------------------------------
+   A whole experiment is one slide. Stacked, a card runs to twice the screen
+   height and would have to shrink below half size, so on a slide it gets a
+   wider frame and its blocks are set side by side. .sj-col only groups
+   blocks into those columns; on the page it has no box at all, so the blog's
+   own layout is unchanged. */
+.sj-col { display: contents; }
+/* scroll-jack.js marks the slides that hold an experiment */
+body.sj-on .sj-card.sj-wide { width: 100vw; margin-left: calc(50% - 50vw); }
+body.sj-on .sj-card.sj-wide .sj-card-inner { max-width: min(1240px, calc(100vw - 112px)); }
+/* the full-bleed slide reaches past its .container, which clips sideways */
+body.sj-on .container { overflow: visible; }
+body.sj-on { overflow-x: clip; }
+
+body.sj-on .result-card { margin: 0; }
+body.sj-on .sj-wide .result-card {
+  display: grid; column-gap: 2.5rem; align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+body.sj-on .sj-wide .result-card > * { grid-column: 1 / -1; }
+body.sj-on .sj-wide .result-card > .sj-col { display: block; grid-column: auto; }
+body.sj-on .sj-col > :first-child { margin-top: 0; }
+body.sj-on .sj-wide .result-card .figure-container { margin: 0.75rem 0; }
+body.sj-on .sj-wide .result-card .takeaway-box { margin-top: 0.75rem; }
+body.sj-on .sj-wide .result-card > p + .sj-col,
+body.sj-on .sj-wide .result-card > p + .sj-col + .sj-col { margin-top: 1.25rem; }
+
+/* ImageNet: the two questions side by side, rows aligned across them */
+@supports (grid-template-rows: subgrid) {
+  body.sj-on #imagenet > .sj-col {
+    display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start;
+  }
+}
+/* GUI: the set-up and the question beside the figure, the takeaway below */
+body.sj-on #gui { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+body.sj-on #gui > .sj-col { align-self: center; }
+body.sj-on #gui > .figure-container { grid-column: 2; margin: 0; }
+/* Maze: the description, question and finding beside the figure, centred on
+   it by the two flexible rows around them; the takeaway below */
+body.sj-on #maze { grid-template-rows: auto 1fr auto auto auto 1fr auto; }
+body.sj-on #maze > .pair-block { display: contents; }
+body.sj-on #maze > h3 { grid-row: 1; }
+body.sj-on #maze > p { grid-column: 1; grid-row: 3; }
+body.sj-on #maze > .eyebrow { grid-column: 1; grid-row: 4; margin-top: 1.25rem; }
+body.sj-on #maze .pair-block > p { grid-column: 1; grid-row: 5; margin-top: 0.6rem; }
+body.sj-on #maze .pair-figure { grid-column: 2; grid-row: 2 / 7; flex: none; max-width: none; margin: 0; }
+body.sj-on #maze > .takeaway-box { grid-row: 7; }
+/* Code runtime: the set-up and its starting distribution beside the result */
+body.sj-on #code-opt { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); }
+body.sj-on #code-opt > .float-block { grid-column: 1; align-self: start; margin-top: 0.75rem; gap: 1.25rem; }
+body.sj-on #code-opt > .sj-col { grid-column: 2; }
+body.sj-on #code-opt > .eyebrow { margin-bottom: 0; }
 
 /* ---- reduced motion ------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
@@ -704,7 +800,7 @@ body.sj-on .hero { min-height: 0; display: block; }
 .author-line { font-size: 1.16rem; line-height: 1.4; }
 .publication-affiliations { font-size: 0.94rem; line-height: 1.45; margin-top: 0.35rem; }
 .publication-contact { font-size: 0.94rem; margin-top: 0.3rem; }
-.result-card > p { font-size: 1.2rem; line-height: 1.7; }
+.result-card > p, .result-card > .sj-col > p { font-size: 1.2rem; line-height: 1.7; }
 .result-note { font-size: 1.14rem; }
 .takeaway-line { font-size: 1.2rem; }
 /* our links are pills rather than Bulma buttons, so they sit just under
@@ -724,7 +820,7 @@ body { font-family: var(--cm); }
 /* body and card copy at MaxRL's 16/27.2; the earlier bump for Computer
    Modern is dropped in favour of matching the reference page. */
 .content p, .content li { font-size: 1.2rem; line-height: 1.7; }
-.result-card > p { font-size: 1.2rem; line-height: 1.7; }
+.result-card > p, .result-card > .sj-col > p { font-size: 1.2rem; line-height: 1.7; }
 .hero .title.is-2 { font-weight: 700; }
 h2.title.is-3, .title.is-3.section-title { font-weight: 700; }
 code, pre, .bibtex-box code { font-family: 'JetBrains Mono', 'Fira Code', Monaco, monospace; }
@@ -788,6 +884,9 @@ img[data-play-in-view] {
   height: auto;
   background: transparent;
 }
+/* Without JavaScript the placeholder never becomes the GIF; the <noscript>
+   still beside it takes its place instead of sitting under a blank box. */
+@media (scripting: none) { img[data-play-in-view] { display: none; } }
 
 /* ---- objective / gradient comparison boxes -------------------------------
    The gradient expressions are wide for a half-width column, so each formula
@@ -796,7 +895,7 @@ img[data-play-in-view] {
   margin: 0; text-align: center;
   overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
 }
-.math-box h4 { text-align: center; font-size: 1.2rem; }
+.math-box h3 { text-align: center; font-size: 1.2rem; }
 
 /* ---- tinted comparison boxes ---------------------------------------------
    MaxRL's own boxes are neutral grey; the tints here follow the colour
@@ -807,12 +906,12 @@ img[data-play-in-view] {
   background: #e4edf8;
   border-color: #b3c9e4;
 }
-.math-box.is-rl h4 { color: var(--grpo); }
+.math-box.is-rl h3 { color: var(--grpo); }
 .math-box.is-tail {
   background: #f9e6e2;
   border-color: #e3b6ac;
 }
-.math-box.is-tail h4 { color: var(--tailrl); }
+.math-box.is-tail h3 { color: var(--tailrl); }
 
 /* a single full-width box, for a theorem rather than a two-way comparison */
 .math-comparison.one { grid-template-columns: minmax(0, 1fr); }
@@ -835,7 +934,7 @@ img[data-play-in-view] {
 }
 
 /* ---- heading sizes ------------------------------------------------------
-   Pinned in px, matching the MaxRL page: h2 32/36, h4 24. */
+   Pinned in px, matching the MaxRL page: h2 32/36, h3 24. */
 h2.title.is-3, .title.is-3.section-title { font-size: 32px; line-height: 36px; }
 h2.section-title, h3.section-title, .title.section-title { font-size: 32px; }
 h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
@@ -901,8 +1000,12 @@ h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
 }
 #tailrl .math-comparison .math-line {
   display: flex; align-items: center; justify-content: center;
+  justify-content: safe center;
   min-height: var(--eq-h, auto);
 }
+/* where `safe` is unsupported, auto margins centre a short equation and let
+   a long one start at the left edge, where the scroller can reach it */
+#tailrl .math-comparison .math-line > * { margin-left: auto; margin-right: auto; }
 /* Each row reserves a height tall enough for its tallest equation, so the two
    boxes centre their glyphs on the same line. Aligning by the .katex box will
    not do it: a displaystyle integral overflows its own 22px inline strut. */
@@ -923,7 +1026,7 @@ h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
    needs air above. The exception is a question sitting straight under the
    experiment name, where the pair should read as one heading. */
 .result-card .eyebrow { margin-top: 2rem; }
-.result-card h4 + .eyebrow { margin-top: 0; }
+.result-card h3 + .eyebrow { margin-top: 0; }
 @media (max-width: 768px) { .result-card .eyebrow { font-size: 1.08rem; } }
 
 /* Pseudocode, set as a numbered list rather than a code block: the steps are
@@ -1053,8 +1156,21 @@ h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
   .btn { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
 }
 
-/* The teaser's lead-in competes with the figure it introduces for the opening
-   screen, so it is set a little smaller on a phone. */
-@media (max-width: 768px) {
-  #teaser .content p { font-size: 1.04rem; line-height: 1.55; }
+/* The title sits on one line at every width: it scales with the viewport
+   instead of wrapping. 21.5 is its width per unit of font size in CMU Serif
+   bold (20.0), with headroom for the Georgia fallback (20.8) shown until the
+   webfont lands; 3rem is the hero's side padding. The 2.9rem cap keeps it
+   inside presentation mode's 960px cards. Declared last so it outranks the
+   per-breakpoint sizes above. */
+.hero .title.is-2 {
+  white-space: nowrap;
+  font-size: min(2.9rem, calc((100vw - 3rem) / 21.5));
+  line-height: 1.2;
 }
+
+/* Two paragraphs in a row inside a result card, or beside its figure, read
+   as two paragraphs. Bulma zeroes <p> margins and nothing here restored them. */
+.result-card > p + p, .result-card > .sj-col > p + p, .float-block .float-prose p + p { margin-top: 0.9rem; }
+
+/* A name never breaks from its superscript, nor an affiliation mid-name. */
+.nm { white-space: nowrap; }

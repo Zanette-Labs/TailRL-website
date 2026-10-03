@@ -21,7 +21,9 @@
 
   /* Each entry names the surface to demonstrate on, and where to drag in that
      surface's own viewBox units, which keeps the path independent of how wide
-     the widget happens to render. */
+     the widget happens to render. `vb` is the viewBox the path was drawn for;
+     a surface that switches to another layout (the explorer on a phone) has
+     the path scaled onto its current viewBox. */
   var DEMOS = [
     { sel: '#ex-svg-rewards', vb: [760, 300],
       from: [250, 190], to: [520, 140], via: [385, 58] },
@@ -36,6 +38,7 @@
 
   function ptOf(svg, vb, p) {
     var r = svg.getBoundingClientRect();
+    // the fraction of the drawing, which is the same whatever its units
     return { x: r.left + (p[0] / vb[0]) * r.width, y: r.top + (p[1] / vb[1]) * r.height };
   }
   /* The gesture's own events bubble to the window listener that watches for a
@@ -154,7 +157,33 @@
   var armed = false, loadedAt = +new Date(), idle = 0;
   var INPUT = ['wheel', 'keydown', 'pointerdown', 'touchstart'];
 
+  /* A reader already pressing in a widget has found out it is interactive,
+     and a gesture started under their drag would fight it for the same
+     pointer state. So a real press inside a widget retires that widget's
+     demo for good, and no demo starts while any real pointer is held. */
+  var held = 0;
+  function widgetOf(demo) {
+    var svg = document.querySelector(demo.sel);
+    return svg && (svg.closest ? svg.closest('.explorer') : null) || svg;
+  }
+  window.addEventListener('pointerdown', function (e) {
+    if (synthetic) return;
+    held++;
+    pending = pending.filter(function (d) {
+      var w = widgetOf(d);
+      return !(w && w.contains(e.target));
+    });
+  }, true);
+  function release(e) { if (!synthetic && held > 0) held--; }
+  window.addEventListener('pointerup', release, true);
+  window.addEventListener('pointercancel', release, true);
+  // a release outside the window is never reported; a buttonless move is
+  window.addEventListener('pointermove', function (e) {
+    if (!synthetic && e.buttons === 0) held = 0;
+  }, true);
+
   function check() {
+    if (held > 0) { schedule(); return; }
     pending = pending.filter(function (demo) {
       if (!settledInView(demo)) return true;
       run(demo);

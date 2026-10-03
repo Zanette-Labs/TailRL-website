@@ -60,6 +60,9 @@
             left: 0;
             pointer-events: none;
             z-index: 0;
+            /* the 4px rule sits inside the measured width, or every band
+               overhangs the code box and the pre scrolls sideways by 4px */
+            box-sizing: border-box;
         }
         .line-highlight-bg.delete {
             background: rgba(244, 67, 54, 0.15) !important;
@@ -336,6 +339,13 @@
 
                 const lineNumberSpans = preElement.querySelectorAll('.line-numbers-rows > span');
                 if (lineNumberSpans.length === 0) return;
+                /* Re-run on every resize: below 900px the rows are hidden and
+                   measure as zero, so bands placed then sit above the code and
+                   stay there once the frame widens. Start from none. */
+                [].forEach.call(preElement.querySelectorAll('.line-highlight-bg'), function (n) {
+                    n.parentNode.removeChild(n);
+                });
+                if (lineNumberSpans[0].getBoundingClientRect().height === 0) { reportHeight(); return; }
 
                 const originalHTML = window.originalCodeHTML || codeElement.innerHTML;
                 const htmlLines = originalHTML.split('\n');
@@ -376,7 +386,12 @@
             } else {
                 runWhenReady();
             }
-            function resync() { sizeBands(); reportHeight(); }
+            /* bands are placed by measuring the rows, so a width change that
+               reflows them (or shows them again past 900px) re-places them */
+            function resync() {
+                if (document.querySelector('code.language-python[data-lines]')) markDiffLines();
+                else { sizeBands(); reportHeight(); }
+            }
             window.addEventListener('load', resync);
             window.addEventListener('resize', resync);
             if (document.fonts && document.fonts.ready) document.fonts.ready.then(resync);

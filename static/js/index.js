@@ -17,6 +17,24 @@
     });
   }
 
+  /* ---- printing: animated figures print their still frame ----------------
+     A GIF prints as its first frame, which for both animations is blank or
+     unfilled axes; and the reshape figure is a 1x1 placeholder until it has
+     been scrolled into view. Swap in the static frame for the print, and put
+     back whatever was showing afterwards. */
+  var printSwap = [];
+  window.addEventListener('beforeprint', function () {
+    printSwap = [].slice.call(document.querySelectorAll('img[data-static]')).map(function (img) {
+      var was = img.getAttribute('src');
+      img.setAttribute('src', img.getAttribute('data-static'));
+      return { img: img, src: was };
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    printSwap.forEach(function (s) { s.img.setAttribute('src', s.src); });
+    printSwap = [];
+  });
+
   /* ---- code.html reports its rendered height so the iframe can fit it ---- */
   window.addEventListener('message', function (e) {
     if (!e.data || typeof e.data.tailrlCodeHeight !== 'number') return;

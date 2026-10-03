@@ -1,16 +1,26 @@
 /* ===========================================================================
-   Presentation mode (opt-in card snap-scroll) for the TailRL project page.
+   Presentation mode (opt-in slides) for the TailRL blog.
 
-   The page is partitioned into cards at load time: runs of content blocks are
-   packed into groups that fit a fixed design budget, each group is wrapped in
-   a full-viewport card, and one wheel gesture animates from card to card.
-   Cards whose content still overflows the real viewport are scaled to fit, so
-   a card never bleeds into its neighbour.
+   Slides are authored in the markup rather than guessed from heights, so
+   every slide carries a complete thought:
 
-   OFF BY DEFAULT. Ordinary browser scrolling, find-in-page, anchors and
-   trackpad behavior are untouched unless the reader opts in. The card wrappers
-   are not even built until the first time the mode is switched on, so the
-   default page pays nothing for this file.
+     - every <section> is one slide by default;
+     - inside a section, a child carrying data-slide starts a new slide;
+     - inside a .result-card, a child carrying data-slide splits the card,
+       and each part gets a copy of the card's shell so it still reads as a
+       card. The first part can share a slide with whatever precedes the
+       card (the Results heading rides with the ImageNet set-up); a card that
+       itself carries data-slide starts a fresh one;
+     - a section carrying data-slide-join is folded into the slide before it,
+       which is how the BibTeX and the closing links end on one slide.
+
+   A slide taller than the viewport is scaled down to fit, never clipped.
+
+   OFF BY DEFAULT. Ordinary scrolling, find-in-page, anchors and trackpad
+   behaviour are untouched unless the reader opts in, by the toggle or by
+   arriving on blog.html?present (the landing page's Presentation link).
+   Switching it off undoes every wrapper and split, so the blog is exactly as
+   it was, and keeps the reader on the passage they were looking at.
 
    Vanilla ES5, no dependencies, no globals.
    ========================================================================= */
@@ -18,49 +28,35 @@
   'use strict';
 
   var CFG = {
-    budget:         720,   // px of content a card is designed to hold
-    duration:       680,   // ms per card transition
-    wheelThreshold:  28,   // accumulated |deltaY| before a card advances
+    duration:       680,   // ms per slide transition
+    wheelThreshold:  28,   // accumulated |deltaY| before a slide advances
     quietMs:        150,   // trackpad momentum must be quiet this long to unlock
-    pad:             40,   // px of breathing room inside a card
-    minScale:      0.62,   // never shrink content past this to make it fit
-    minWidth:       768
+    pad:             40,   // px of breathing room above and below a slide
+    minScale:      0.5,    // never shrink a slide past this to make it fit
+    // index.css switches to the phone layout at max-width: 768px, which also
+    // hides the toggle; the mode must never be on where its exit is hidden
+    minWidth:       769
   };
-
-  // elements that always begin a fresh card
-  /* .bibtex-box is not listed: it is the only thing in its section, so
-     breaking before it would strand the heading on a card of its own. */
-  var BREAK_BEFORE = '.result-card, .explorer, h2.section-title, .conclusion-box';
-  // containers safe to split into several cards, each keeping its own shell
-  var SPLITTABLE = 'result-card';
-  // blocks that must stay whole even when they exceed the budget -- taking a
-  // widget apart would strand its readout on a card of its own
-  var ATOMIC = '.explorer, .figure-container, .math-comparison, .comparison-table-wrapper,' +
-               '.bibtex-box, .insight-box, .takeaway-box, .formula-box, .algorithm-box, table, iframe';
-  // a section heading always gets a card to itself, as a chapter divider
-  /* A section heading used to get a card to itself, which read as a title
-     slide followed by an unlabelled one. It now starts a card and travels with
-     as much of its section as the budget holds, so the heading and its content
-     arrive together. BREAK_BEFORE still forces the new card at the heading. */
-  var SOLO = null;
+  var SLIDE = 'data-slide', JOIN = 'data-slide-join', CLONE = 'data-sj-clone';
+  var STORE_KEY = 'tailrl-slide:' + location.pathname;
 
   var docEl = document.documentElement;
-  var cards = [], sections = [], index = 0;
-  var animating = false, locked = false, rafId = 0, quietTimer = 0, acc = 0, built = false;
+  var cards = [], index = 0, undo = [], built = false, building = false;
+  var animating = false, locked = false, rafId = 0, quietTimer = 0, acc = 0;
 
   function maxScroll() { return Math.max(0, docEl.scrollHeight - window.innerHeight); }
   function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
-  function h(el) { return el.getBoundingClientRect().height; }
+  function kids(el) { return [].slice.call(el.children); }
 
-  /* ------------------------------------------------------------ card building */
+  /* ------------------------------------------------------------ slide building */
 
-  /* Lazy images have no height until they load, so packing before that would
-     size every figure card wrongly. Force them in and wait. */
+  /* Lazy images have no height until they load, so scaling a slide before
+     that would size it wrongly. Force them in and wait. */
   function loadImages() {
-    var imgs = [].slice.call(document.images).filter(function (im) { return !im.complete; });
     [].slice.call(document.querySelectorAll('img[loading="lazy"]')).forEach(function (im) {
       im.setAttribute('loading', 'eager');
     });
+    var imgs = [].slice.call(document.images).filter(function (im) { return !im.complete; });
     if (!imgs.length) return Promise.resolve();
     return Promise.all(imgs.map(function (im) {
       return new Promise(function (res) {
@@ -71,141 +67,112 @@
     }));
   }
 
-  // walk past single-child wrappers to the element that actually holds the flow
+  // the element whose children are the section's blocks
   function hostOf(sec) {
-    var el = sec;
-    while (el.children.length === 1 && el.children[0].children.length > 0) el = el.children[0];
-    return el;
+    return sec.querySelector(':scope > .hero-body > .container') ||
+           sec.querySelector(':scope > .container') || sec;
   }
 
-  /* Reference material that rides along with its card instead of being packed:
-     hidden in presentation mode, but still moved into a card. A block dropped
-     here is not merely skipped, it is destroyed, because the split path removes
-     the original shell once its children have been handed to the clones. */
-  var CARRY = 'details.deep';
+  function shown(el) { return getComputedStyle(el).display !== 'none'; }
 
-  function visibleKids(el) {
-    return [].slice.call(el.children).filter(function (c) {
-      if (c.matches && c.matches(CARRY)) return true;
-      var st = getComputedStyle(c);
-      return st.display !== 'none' && st.position !== 'fixed' && h(c) > 4;
-    });
-  }
-
-  /* An oversized block that is only a layout wrapper (.content, .container)
-     is replaced by its children; a block with its own visual identity
-     (.result-card) is kept whole and split separately. */
-  function flowBlocks(host) {
-    var out = [];
-    visibleKids(host).forEach(function (k) {
-      if (h(k) > CFG.budget && k.children.length &&
-          !(k.matches && k.matches(ATOMIC)) && !k.classList.contains(SPLITTABLE)) {
-        out = out.concat(flowBlocks(k));
-      } else out.push(k);
-    });
-    return out;
-  }
-
-  /* Pack blocks into groups that fit the budget. A group never spans two
-     parents, so the card wrapper always has a single insertion point. */
-  function pack(kids) {
-    var groups = [], cur = [], sum = 0;
-    function flush() { if (cur.length) { groups.push(cur); cur = []; sum = 0; } }
-    kids.forEach(function (k) {
-      // a carried block never opens a card of its own and never costs budget,
-      // else a collapsed disclosure lands on a slide showing nothing
-      if (k.matches && k.matches(CARRY)) {
-        if (!cur.length || k.parentNode !== cur[0].parentNode) flush();
-        cur.push(k);
-        return;
-      }
-      /* A research question opens a block, so it starts a slide rather than
-         trailing at the foot of the previous one. The exception is a question
-         sitting straight under the experiment name, where the two are one
-         heading and must not be split. */
-      var kh = h(k);
-      if (k.matches && k.matches('.eyebrow')) {
-        var prev = null, j;
-        for (j = cur.length - 1; j >= 0; j--) {
-          if (!(cur[j].matches && cur[j].matches(CARRY))) { prev = cur[j]; break; }
-        }
-        if (!prev || prev.tagName !== 'H4') flush();
-      }
-      else if (k.matches && k.matches(BREAK_BEFORE)) flush();
-      else if (cur.length && k.parentNode !== cur[0].parentNode) flush();
-      else if (cur.length && sum + kh > CFG.budget) flush();
-      cur.push(k); sum += kh;
-    });
-    flush();
-    return groups;
-  }
-
-  function shellClone(el) {
-    var c = document.createElement(el.tagName);
-    if (el.className) c.className = el.className;
-    if (el.getAttribute('style')) c.setAttribute('style', el.getAttribute('style'));
-    return c;
-  }
-
-  function wrapCard(nodes, parent, before) {
+  function wrapCard(nodes, before) {
+    var parent = before.parentNode;
     var card = document.createElement('div');
     card.className = 'sj-card';
     var inner = document.createElement('div');
     inner.className = 'sj-card-inner';
     card.appendChild(inner);
-    parent.insertBefore(card, before || null);
+    parent.insertBefore(card, before);
     nodes.forEach(function (n) { inner.appendChild(n); });
+    undo.push(function () {
+      while (inner.firstChild) parent.insertBefore(inner.firstChild, card);
+      parent.removeChild(card);
+    });
     return card;
+  }
+
+  /* Split a result card at its data-slide children. Each part is a shell copy
+     of the card; the first takes the card's id and its own data-slide, so
+     anchors keep working and the card's opening rule still applies. */
+  function splitCard(card) {
+    var parts = [], cur = [];
+    kids(card).forEach(function (k) {
+      if (k.hasAttribute(SLIDE) && cur.length) { parts.push(cur); cur = []; }
+      cur.push(k);
+    });
+    if (cur.length) parts.push(cur);
+    if (parts.length < 2) return;
+
+    var parent = card.parentNode, clones = [];
+    var id = card.id;
+    if (id) card.removeAttribute('id');          // never two elements with one id
+    parts.forEach(function (part, i) {
+      var c = document.createElement(card.tagName);
+      c.className = card.className;
+      if (card.getAttribute('style')) c.setAttribute('style', card.getAttribute('style'));
+      c.setAttribute(CLONE, '');
+      if (i === 0) {
+        if (id) c.id = id;
+        if (card.hasAttribute(SLIDE)) c.setAttribute(SLIDE, '');
+      } else c.setAttribute(SLIDE, '');
+      parent.insertBefore(c, card);
+      part.forEach(function (n) { c.appendChild(n); });
+      clones.push(c);
+    });
+    parent.removeChild(card);
+    undo.push(function () {
+      parent.insertBefore(card, clones[0]);
+      clones.forEach(function (c) {
+        while (c.firstChild) card.appendChild(c.firstChild);
+        parent.removeChild(c);
+      });
+      if (id) card.id = id;
+    });
+  }
+
+  function buildSection(sec) {
+    var host = hostOf(sec);
+    kids(host).forEach(function (k) {
+      if (k.classList.contains('result-card') && k.querySelector(':scope > [' + SLIDE + ']')) splitCard(k);
+    });
+    var groups = [], cur = [];
+    kids(host).forEach(function (k) {
+      if (k.hasAttribute(SLIDE) && cur.length) { groups.push(cur); cur = []; }
+      cur.push(k);
+    });
+    if (cur.length) groups.push(cur);
+    groups.forEach(function (g) {
+      var card = wrapCard(g, g[0]);
+      // an experiment is one slide, set wide so its blocks fit side by side
+      if (g.some(function (n) { return n.classList.contains('result-card'); })) card.classList.add('sj-wide');
+    });
   }
 
   function buildCards() {
     if (built) return;
-    [].slice.call(document.querySelectorAll('section, footer.footer')).forEach(function (sec) {
-      var host = hostOf(sec);
-      var kids = flowBlocks(host);
-      if (!kids.length) return;
-      /* Marked sections stay on one slide however tall they are; layout()
-         scales an oversized card down to fit. */
-      if (sec.hasAttribute('data-sj-whole')) {
-        wrapCard(kids, kids[0].parentNode, kids[0]);
-        return;
-      }
-      var groups = pack(kids);
-      groups.forEach(function (g) {
-        // a single oversized splittable block becomes several cards, each
-        // keeping its own shell so it still reads as one complete card
-        if (g.length === 1 && h(g[0]) > CFG.budget && g[0].classList.contains(SPLITTABLE) &&
-            !g[0].hasAttribute('data-sj-whole')) {
-          var shell = g[0], sub = pack(flowBlocks(shell));
-          if (sub.length > 1) {
-            sub.forEach(function (sg) {
-              var clone = shellClone(shell);
-              shell.parentNode.insertBefore(clone, shell);
-              sg.forEach(function (n) { clone.appendChild(n); });
-              wrapCard([clone], clone.parentNode, clone);
-            });
-            shell.parentNode.removeChild(shell);
-            return;
-          }
-        }
-        wrapCard(g, g[0].parentNode, g[0]);
-      });
-    });
+    undo = [];
+    var secs = [].slice.call(document.querySelectorAll('section, footer.footer')).filter(shown);
+    var i = 0, run;
+    while (i < secs.length) {
+      // a section followed by joiners that share its parent becomes one slide
+      run = [secs[i]];
+      while (i + run.length < secs.length && secs[i + run.length].hasAttribute(JOIN) &&
+             secs[i + run.length].parentNode === secs[i].parentNode) run.push(secs[i + run.length]);
+      if (run.length > 1) wrapCard(run, run[0]);
+      else buildSection(secs[i]);
+      i += run.length;
+    }
     cards = [].slice.call(document.querySelectorAll('.sj-card'));
-    cards.forEach(function (c) {
-      var inn = c.firstChild;
-      if (SOLO && inn.children.length === 1 && inn.children[0].matches && inn.children[0].matches(SOLO))
-        c.classList.add('sj-chapter');
-    });
-    sections = [].slice.call(document.querySelectorAll('section, footer.footer')).map(function (el) {
-      var t = el.querySelector('h2.section-title');
-      return { el: el, label: t ? t.textContent.trim()
-        : el.classList.contains('hero') ? 'Top' : el.tagName === 'FOOTER' ? 'Contact' : 'Overview' };
-    });
     built = true;
   }
 
-  /* Scale any card whose content still overflows the real viewport. */
+  function unbuildCards() {
+    if (!built) return;
+    while (undo.length) undo.pop()();
+    cards = []; built = false;
+  }
+
+  /* Scale any slide whose content still overflows the real viewport. */
   function layout() {
     var avail = window.innerHeight - 2 * CFG.pad;
     cards.forEach(function (card) {
@@ -230,16 +197,66 @@
     return best;
   }
 
+  // the slide holding an element, or the first slide inside it
+  function cardOf(el) {
+    if (!el || !cards.length) return -1;
+    var c = el.closest ? el.closest('.sj-card') : null;
+    if (!c && el.querySelector) c = el.querySelector('.sj-card');
+    return c ? cards.indexOf(c) : -1;
+  }
+
+  /* The block the reader is looking at: the first content block that has not
+     scrolled up under the top of the viewport. Leaves only, never a result
+     card's shell, because a shell may be replaced by its parts. */
+  var BLOCKS = 'h1, h2, h3, h4, p, figure, .explorer, .math-comparison, .formula-box, ' +
+               '.takeaway-box, .eyebrow, .bibtex-box, .btn-row, .publication-authors, iframe';
+  function readingAnchor() {
+    var nav = document.querySelector('.pagenav');
+    var top = nav && shown(nav) ? nav.getBoundingClientRect().height : 0;
+    var all = document.querySelectorAll(BLOCKS);
+    for (var i = 0; i < all.length; i++) {
+      var r = all[i].getBoundingClientRect();
+      if (r.height > 0 && r.bottom > top + 8) return all[i];
+    }
+    return null;
+  }
+
+  /* ------------------------------------------------------------------- rail
+     One dot per section heading; the dot for the slide's section is lit. */
+  var rail = document.createElement('nav');
+  rail.className = 'sj-rail';
+  rail.setAttribute('aria-label', 'Slides');
+  var railItems = [];          // { btn, card }
+
+  function buildRail() {
+    while (rail.firstChild) rail.removeChild(rail.firstChild);
+    railItems = [];
+    cards.forEach(function (card, i) {
+      var h = card.querySelector('h2.section-title');
+      var label = h ? h.textContent.trim() : (card.closest('.hero') ? 'Title' : '');
+      if (!label) return;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Go to ' + label);
+      var t = document.createElement('span');
+      t.className = 'sj-rail-label';
+      t.setAttribute('aria-hidden', 'true');
+      t.textContent = label;
+      b.appendChild(t);
+      b.addEventListener('click', function () { goTo(i); });
+      rail.appendChild(b);
+      railItems.push({ btn: b, card: i });
+    });
+  }
+
   function markActive() {
     for (var i = 0; i < cards.length; i++) cards[i].classList.toggle('is-active', i === index);
-    if (!rail.childNodes.length || !sections.length) return;
-    var y = window.scrollY + window.innerHeight * 0.4, cur = 0;
-    for (var s = 0; s < sections.length; s++) {
-      if (sections[s].el.getBoundingClientRect().top + window.scrollY <= y) cur = s;
-    }
-    [].slice.call(rail.childNodes).forEach(function (b, i2) {
-      b.classList.toggle('active', i2 === cur);
-      b.setAttribute('aria-current', i2 === cur ? 'true' : 'false');
+    var cur = -1;
+    railItems.forEach(function (it, k) { if (it.card <= index) cur = k; });
+    railItems.forEach(function (it, k) {
+      it.btn.classList.toggle('active', k === cur);
+      if (k === cur) it.btn.setAttribute('aria-current', 'step');
+      else it.btn.removeAttribute('aria-current');
     });
   }
 
@@ -247,7 +264,7 @@
   function animateTo(y, done) {
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
     var start = window.scrollY, dist = y - start, t0 = null;
-    if (Math.abs(dist) < 1) { done && done(); return; }
+    if (Math.abs(dist) < 1) { animating = false; done && done(); return; }
     animating = true;
     rafId = requestAnimationFrame(function frame(ts) {
       if (t0 === null) t0 = ts;
@@ -266,41 +283,20 @@
   }
 
   function goTo(i) {
+    if (!cards.length) return;
     index = Math.max(0, Math.min(cards.length - 1, i));
     locked = true;
     markActive();
+    try { sessionStorage.setItem(STORE_KEY, String(index)); } catch (e) {}
     animateTo(targetFor(index), unlockWhenQuiet);
   }
   function stepBy(d) { goTo(index + d); }
 
-  /* ----------------------------------------------------------------- chrome */
-  var rail = document.createElement('nav');
-  rail.className = 'sj-rail';
-  rail.setAttribute('aria-label', 'Section navigation');
+  /* ------------------------------------------------------------ enable/disable */
   var toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'sj-toggle';
 
-  function buildRail() {
-    while (rail.firstChild) rail.removeChild(rail.firstChild);
-    sections.forEach(function (s) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.setAttribute('data-label', s.label);
-      b.setAttribute('aria-label', 'Jump to ' + s.label);
-      b.addEventListener('click', function () {
-        var t = s.el.getBoundingClientRect().top + window.scrollY, best = 0, bd = Infinity;
-        for (var i = 0; i < cards.length; i++) {
-          var d = Math.abs(targetFor(i) - t);
-          if (d < bd) { bd = d; best = i; }
-        }
-        goTo(best);
-      });
-      rail.appendChild(b);
-    });
-  }
-
-  /* ------------------------------------------------------------ enable/disable */
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   var enabled = false;
@@ -308,23 +304,92 @@
   function stored() { try { return localStorage.getItem('tailrl-snap-scroll'); } catch (e) { return null; } }
   function store(v) { try { localStorage.setItem('tailrl-snap-scroll', v); } catch (e) {} }
 
-  function setEnabled(on) {
-    enabled = !!on && allowed();
-    document.body.classList.toggle('sj-on', enabled);
-    toggle.textContent = enabled ? 'Presentation mode: on' : 'Presentation mode';
+  function label() {
+    toggle.textContent = building ? 'Presentation mode: preparing…'
+      : enabled ? 'Presentation mode: on' : 'Presentation mode';
     toggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    if (enabled) {
+  }
+
+  /* start(): which slide to open on, asked once the slides exist. */
+  function setEnabled(on, start) {
+    on = !!on && allowed();
+    if (on === enabled) return;
+    if (on) {
+      enabled = true;
+      document.body.classList.add('sj-on');
+      label();
       buildOnce(function () {
-        layout(); buildRail(); index = nearestIndex(); markActive();
-        goTo(index);
+        // the reader may have switched it off again while slides were built
+        if (!enabled) return;
+        layout(); buildRail();
+        var i = start ? start() : -1;
+        index = i >= 0 ? i : nearestIndex();
+        markActive();
+        // land on the slide at once; the animation is for moving between them
+        window.scrollTo(0, targetFor(index));
+        try { sessionStorage.setItem(STORE_KEY, String(index)); } catch (e) {}
       });
     } else {
+      // remember the passage on screen, by an element that survives unbuilding
+      var anchor = null;
+      if (cards[index]) {
+        anchor = cards[index].firstChild.firstElementChild;
+        if (anchor && anchor.hasAttribute(CLONE)) anchor = anchor.firstElementChild;
+      }
+      enabled = false;
       locked = false; acc = 0;
-      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; animating = false; }
-      cards.forEach(function (c) { c.classList.remove('is-active'); });
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      animating = false;
+      unbuildCards();
+      document.body.classList.remove('sj-on');
+      railItems = [];
+      while (rail.firstChild) rail.removeChild(rail.firstChild);
+      label();
+      if (anchor) {
+        var nav = document.querySelector('.pagenav');
+        var off = nav && shown(nav) ? nav.getBoundingClientRect().height + 12 : 12;
+        window.scrollTo(0, anchor.getBoundingClientRect().top + window.scrollY - off);
+      }
     }
   }
-  toggle.addEventListener('click', function () { setEnabled(!enabled); store(enabled ? 'on' : 'off'); });
+
+  function requested() { return /(^|[?&])present(=|&|$)/.test(location.search.slice(1)); }
+
+  /* Switching off by hand (the toggle or Escape) also drops the ?present
+     request, so a reload does not put the reader straight back into the
+     mode they just left. */
+  function switchOff() {
+    setEnabled(false);
+    store('off');
+    if (requested() && window.history && history.replaceState) {
+      var q = location.search.slice(1).split('&').filter(function (p) {
+        return p && p.split('=')[0] !== 'present';
+      }).join('&');
+      history.replaceState(history.state, '', location.pathname + (q ? '?' + q : '') + location.hash);
+    }
+  }
+
+  toggle.addEventListener('click', function () {
+    if (enabled) { switchOff(); return; }
+    var anchor = readingAnchor();
+    setEnabled(true, function () { return cardOf(anchor); });
+    store(enabled ? 'on' : 'off');
+  });
+
+  /* Slides are built on each opt-in and undone on opt-out. Images must be
+     loaded first or a figure's slide would be sized from a zero-height image. */
+  function buildOnce(then) {
+    if (built) { requestAnimationFrame(then); return; }
+    if (building) return;
+    building = true;
+    label();
+    loadImages().then(function () {
+      building = false;
+      if (enabled) buildCards();
+      label();
+      if (enabled) requestAnimationFrame(then);
+    });
+  }
 
   /* ------------------------------------------------------------------ input */
   function inScrollable(node) {
@@ -337,7 +402,8 @@
   }
 
   window.addEventListener('wheel', function (e) {
-    if (!enabled) return;
+    if (!enabled || !cards.length) return;
+    if (e.ctrlKey || e.metaKey) return;          // browser zoom and trackpad pinch
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     if (inScrollable(e.target)) return;
     e.preventDefault();
@@ -346,39 +412,54 @@
     if (Math.abs(acc) >= CFG.wheelThreshold) { var d = acc > 0 ? 1 : -1; acc = 0; stepBy(d); }
   }, { passive: false });
 
+  /* Space presses a focused button rather than turning the slide, but only
+     under keyboard focus: a preset clicked with the mouse keeps focus, and the
+     presenter's next Space should still advance. */
+  function spaceBelongsTo(t) {
+    if (!t || !t.closest || !t.closest('button, summary, [role=button]')) return false;
+    try { return t.matches(':focus-visible'); } catch (e) { return true; }
+  }
+
   window.addEventListener('keydown', function (e) {
-    if (!enabled) return;
+    if (!enabled || !cards.length) return;
     var t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === ' ' && spaceBelongsTo(t)) return;
     var d = 0;
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) d = 1;
-    else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) d = -1;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) d = 1;
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) d = -1;
     else if (e.key === 'Home') { e.preventDefault(); goTo(0); return; }
     else if (e.key === 'End') { e.preventDefault(); goTo(cards.length - 1); return; }
+    else if (e.key === 'Escape') { switchOff(); return; }
     else return;
     e.preventDefault();
     if (!locked) stepBy(d);
   });
 
   document.addEventListener('click', function (e) {
-    if (!enabled) return;
+    if (!enabled || !cards.length) return;
     var a = e.target;
     while (a && a.tagName !== 'A') a = a.parentNode;
     if (!a || !a.getAttribute) return;
     var href = a.getAttribute('href');
     if (!href || href.charAt(0) !== '#' || href.length < 2) return;
-    var el = document.getElementById(href.slice(1));
-    if (!el) return;
+    var i = cardOf(document.getElementById(href.slice(1)));
+    if (i < 0) return;
     e.preventDefault();
-    var card = el.closest ? el.closest('.sj-card') : null;
-    var i = card ? cards.indexOf(card) : -1;
-    if (i >= 0) goTo(i);
+    goTo(i);
+  });
+
+  // Tab onto a control on another slide: bring that whole slide in
+  document.addEventListener('focusin', function (e) {
+    if (!enabled || !cards.length) return;
+    var i = cardOf(e.target);
+    if (i >= 0 && i !== index) goTo(i);
   });
 
   var scrollRaf = 0;
   window.addEventListener('scroll', function () {
-    if (!enabled || animating || locked || scrollRaf) return;
+    if (!enabled || !cards.length || animating || locked || scrollRaf) return;
     scrollRaf = requestAnimationFrame(function () {
       scrollRaf = 0; index = nearestIndex(); markActive();
     });
@@ -388,40 +469,54 @@
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      if (!allowed() && enabled) { setEnabled(false); return; }
-      if (enabled) { layout(); index = nearestIndex(); markActive(); goTo(index); }
+      if (enabled && !allowed()) { setEnabled(false); return; }
+      if (enabled && cards.length) { layout(); window.scrollTo(0, targetFor(index)); }
     }, 180);
   });
 
   window.addEventListener('message', function (e) {
-    if (e.data && typeof e.data.tailrlCodeHeight === 'number' && enabled) setTimeout(layout, 80);
+    if (e.data && typeof e.data.tailrlCodeHeight === 'number' && enabled && cards.length) setTimeout(layout, 80);
   });
 
-  /* Cards are built on first opt-in only. Images must be loaded first or the
-     packing would size figure cards from zero-height lazy images. */
-  var building = false;
-  function buildOnce(then) {
-    if (built) { requestAnimationFrame(then); return; }
-    if (building) return;
-    building = true;
-    toggle.textContent = 'Presentation mode: preparing…';
-    loadImages().then(function () {
-      buildCards();
-      building = false;
-      requestAnimationFrame(then);
-    });
+  /* The landing page's Presentation link (blog.html?present) is an explicit
+     opt-in, the same as clicking the toggle, so it is honoured on load. It
+     opens on the slide holding the #hash if there is one, else on the slide
+     this tab was last on (a reload), else on the title. */
+  function bootStart() {
+    var h = location.hash.slice(1);
+    if (h) { var i = cardOf(document.getElementById(h)); if (i >= 0) return i; }
+    try {
+      var s = parseInt(sessionStorage.getItem(STORE_KEY), 10);
+      if (s >= 0 && s < cards.length) return s;
+    } catch (e) {}
+    return 0;
+  }
+
+  /* Slide sizes are measured from rendered heights, so wait for images, the
+     code iframe and the webfonts to land first. */
+  function whenSettled(fn) {
+    function fonts() {
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fn, fn);
+      else fn();
+    }
+    if (document.readyState === 'complete') fonts();
+    else window.addEventListener('load', fonts);
   }
 
   function boot() {
     document.body.appendChild(rail);
     document.body.appendChild(toggle);
     if (!allowed()) { toggle.style.display = 'none'; return; }
-    toggle.textContent = 'Presentation mode';
-    toggle.setAttribute('aria-pressed', 'false');
-    toggle.setAttribute('title', 'Snap through the page one card at a time');
+    toggle.setAttribute('title', 'Step through the blog one slide at a time');
+    label();
     // deliberately not restoring a stored "on": the page always opens in
-    // ordinary scrolling, and only an explicit click turns the mode on
+    // ordinary scrolling, and only an explicit request turns the mode on
     if (stored() === 'on') store('off');
+    if (requested()) {
+      // the browser's own scroll restoration would race the slide we pick
+      try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+      whenSettled(function () { if (!enabled) setEnabled(true, bootStart); });
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
