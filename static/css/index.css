@@ -1202,3 +1202,8 @@ h2.title.is-4, .title.is-4.section-title { font-size: 24px; }
 .related-card:hover .related-go { color: var(--tailrl); }
 @media (max-width: 768px) { .related-card { margin-top: 1.5rem; padding: 0.95rem 1.1rem; } }
 @media (prefers-reduced-motion: reduce) { .related-card { transition: none; } }
+
+/* The citation is arXiv's own entry, author list on one line; wrap it in
+   view rather than hiding most of it behind a sideways scroll. Copying uses
+   the text itself, so the copied entry is unchanged. */
+.bibtex-box pre, .bibtex-box code { white-space: pre-wrap; overflow-wrap: anywhere; }
